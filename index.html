@@ -41,6 +41,13 @@
   }
   canvas{display:block;width:100%;height:100%;background:#07030f}
 
+  /* Mobile: drop the framed box and fill the screen. Letterbox space is the
+     same #07030f as the canvas, so the game reads as fullscreen. */
+  @media (max-width:640px){
+    body{padding:0}
+    .wrap{width:100vw;width:100dvw;max-width:none;border-radius:0;box-shadow:none}
+  }
+
   .screen{
     position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
     text-align:center;gap:14px;padding:26px;z-index:5;overflow-y:auto;
@@ -138,7 +145,7 @@ const W=canvas.width,H=canvas.height;
 
 // ---------------- Audio (procedural, no files) ----------------
 let actx=null;
-function ensureAudio(){if(!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){actx=null;}}}
+function ensureAudio(){if(!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){actx=null;}}if(actx&&actx.state==='suspended'){actx.resume().catch(()=>{});}}
 function tone(f,d,type='square',vol=0.08,slide=null){
   if(!actx)return;
   try{
@@ -511,8 +518,8 @@ function applyPup(kind){
     if(p.shield>=p.shieldMax && p.shieldMax<5)p.shieldMax++; // already full? upgrade capacity
     p.shield=p.shieldMax; p.shieldRegen=0; p.shieldFlash=0.5; sfx.shieldUp();
   }
-  else { // weapon letter
-    if(p.weapon===kind)p.power=Math.min(4,p.power+1); else {p.weapon=kind;p.power=1;}
+  else { // weapon letter — switch type but keep your power level (never downgrade)
+    if(p.weapon===kind)p.power=Math.min(4,p.power+1); else {p.weapon=kind;}
   }
   flash(kind);
 }
