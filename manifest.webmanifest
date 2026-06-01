@@ -1,0 +1,16 @@
+{
+  "name": "RETROGRADE",
+  "short_name": "Retrograde",
+  "description": "A neon synthwave space shooter with a campaign, Contra-style weapons, and a soundtrack the battle dances to.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0a0413",
+  "theme_color": "#0a0413",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
