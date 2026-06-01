@@ -163,13 +163,18 @@ function ensureAudio(){
     try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){actx=null;return;}
     // iOS 16.4+: play audio like a media app so the silent/ringer switch doesn't mute it.
     try{if(navigator.audioSession)navigator.audioSession.type='playback';}catch(e){}
+    // iOS drops the context to 'suspended'/'interrupted' on backgrounding, Control Center,
+    // a notification or a call and never auto-resumes — leaving the game permanently silent.
+    // Re-resume whenever it leaves 'running' (only while visible, so we don't fight a
+    // deliberate background suspend). resume() inside a gesture is the supported iOS unlock.
+    actx.addEventListener('statechange',()=>{ if(actx.state!=='running'&&!document.hidden)actx.resume().catch(()=>{}); });
   }
   if(actx.state!=='running')actx.resume().catch(()=>{});
-  // iOS needs a sound started inside a user gesture to unlock the audio output.
-  if(!actx._unlocked){
-    try{const b=actx.createBuffer(1,1,22050),s=actx.createBufferSource();s.buffer=b;s.connect(actx.destination);s.start(0);actx._unlocked=true;}catch(e){}
-  }
 }
+// Suspend audio when backgrounded (mitigates an iOS 26 standalone-PWA audio glitch) and
+// reassert it on foreground / bfcache restore.
+document.addEventListener('visibilitychange',()=>{ if(!actx)return; if(document.hidden)actx.suspend().catch(()=>{}); else actx.resume().catch(()=>{}); });
+addEventListener('pageshow',()=>{ if(actx)actx.resume().catch(()=>{}); });
 function tone(f,d,type='square',vol=0.08,slide=null){
   if(!actx)return;
   try{
@@ -219,6 +224,8 @@ function mStepDur(){ return 60/MUSIC.bpm/4; } // 16th-note duration
 
 function musicStart(){
   if(!actx||MUSIC.on)return;
+  // Don't schedule the fade-in/notes against a frozen clock; start once the context is live.
+  if(actx.state!=='running'){ actx.resume().then(musicStart).catch(()=>{}); return; }
   MUSIC.on=true; MUSIC.step=0; MUSIC.bar=0; MUSIC.beatQueue=[];
   MUSIC.master=actx.createGain(); MUSIC.master.gain.value=0.0;
   MUSIC.master.gain.linearRampToValueAtTime(0.85, actx.currentTime+1.5);
@@ -450,6 +457,7 @@ window.addEventListener('keydown',e=>{
 });
 window.addEventListener('keyup',e=>{keys[e.code]=false; if(e.code==='Space')fireHeld=false;});
 
+document.getElementById('startBtn').addEventListener('pointerdown',ensureAudio,{passive:true}); // unlock on the earliest trusted gesture
 document.getElementById('startBtn').onclick=()=>{ensureAudio();document.getElementById('startScreen').classList.add('hide');goMap();};
 document.getElementById('overBtn').onclick=()=>{ensureAudio();document.getElementById('overScreen').classList.add('hide');goMap();};
 function gameOver(){state='over';sfx.over();musicStop();
