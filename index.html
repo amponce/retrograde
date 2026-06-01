@@ -45,7 +45,7 @@
      same #07030f as the canvas, so the game reads as fullscreen. */
   @media (max-width:640px){
     body{padding:0}
-    .wrap{width:100vw;width:100dvw;max-width:none;border-radius:0;box-shadow:none}
+    .wrap{width:100vw;width:100dvw;height:100vh;height:100dvh;max-width:none;aspect-ratio:auto;border-radius:0;box-shadow:none}
   }
 
   .screen{
@@ -141,7 +141,20 @@
 
 <script>
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
-const W=canvas.width,H=canvas.height;
+let W=canvas.width,H=canvas.height;
+// Size the drawing buffer to the element's real pixel size so the world fills
+// the screen (fullscreen on mobile) instead of a fixed 2:3 box. W/H are CSS px;
+// the buffer is scaled by devicePixelRatio for crispness on retina displays.
+function resize(){
+  const r=canvas.getBoundingClientRect();
+  const dpr=Math.min(window.devicePixelRatio||1,2.5);
+  canvas.width=Math.max(1,Math.round(r.width*dpr));
+  canvas.height=Math.max(1,Math.round(r.height*dpr));
+  W=Math.round(r.width); H=Math.round(r.height);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+addEventListener('resize',resize);
+addEventListener('orientationchange',resize);
 
 // ---------------- Audio (procedural, no files) ----------------
 let actx=null;
@@ -1187,7 +1200,7 @@ function animateMenu(dt){
   for(const s of stars){s.tw+=dt*3;}
   for(const n of nebulae){n.y+=n.vy*dt*0.3; if(n.y-n.r>H){n.y=-n.r;n.x=Math.random()*W;}}
 }
-resetGame();requestAnimationFrame(frame);
+resize();resetGame();requestAnimationFrame(frame);
 
 // ---------------- PWA: register service worker ----------------
 if('serviceWorker' in navigator){
