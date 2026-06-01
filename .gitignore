@@ -1,3 +1,4 @@
 # Local tooling
 .omc/
+.claude/
 .DS_Store

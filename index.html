@@ -118,6 +118,7 @@
       <div class="keys">
         <span class="key"><b>← → ↑ ↓</b> / WASD &nbsp;fly</span>
         <span class="key"><b>Space</b> &nbsp;hold to fire</span>
+        <span class="key"><b>Mouse</b> &nbsp;move + auto-fire</span>
         <span class="key"><b>P</b> &nbsp;pause</span>
       </div>
       <button class="btn" id="startBtn">▶ LAUNCH</button>
@@ -320,12 +321,26 @@ let bossFlash=0, dropFlash=0;   // screen flashes
 let spawnTimer=0, waveTimer=0, waveActive=false, toSpawn=[], betweenWaves=0;
 let pupCycleIdx=0;
 const keys={};
-let fireHeld=false;
+let fireHeld=false, mouseCtrl=false;
 let lifeMsg=null; // "EXTRA LIFE!" banner
 
 // ---------------- Campaign ----------------
 const WAVES_PER_LEVEL=5;   // waves 1..4 are swarms, wave 5 is the boss
 const NUM_LEVELS=8;
+// Per-level background mood: 3 nebula tints, the horizon glow, and the grid colour.
+// Keeps the synthwave vibe while each level reads as a distinct place.
+const LEVEL_THEMES=[
+  {neb:['157,78,221','255,45,149','34,120,200'], glow:'255,45,149', grid:'157,78,221'}, // 1 violet (default)
+  {neb:['34,225,255','56,120,255','120,90,220'], glow:'34,225,255', grid:'56,150,230'},  // 2 cyan
+  {neb:['255,45,149','200,60,255','120,40,180'], glow:'255,80,180', grid:'200,60,255'},  // 3 pink
+  {neb:['255,120,40','255,45,149','180,40,120'], glow:'255,120,40', grid:'255,90,150'},  // 4 sunset
+  {neb:['57,255,140','34,225,255','40,160,120'], glow:'57,255,140', grid:'34,200,180'},  // 5 toxic
+  {neb:['60,90,220','120,60,200','30,60,160'],   glow:'90,120,255', grid:'90,90,220'},   // 6 deep blue
+  {neb:['255,70,70','255,140,40','180,40,60'],   glow:'255,80,80',  grid:'255,120,80'},  // 7 danger
+  {neb:['255,210,60','255,45,149','157,78,221'], glow:'255,210,90', grid:'255,160,200'}, // 8 finale gold
+];
+let theme=LEVEL_THEMES[0];
+function themeFor(n){ return LEVEL_THEMES[(n-1)%LEVEL_THEMES.length]; }
 let level=1, levelWave=0, phase='intermission', interT=0, interLabel='', interSub='';
 let selectedLevel=1, levelCoins=0, victoryData=null;
 let campaign={unlocked:1, stars:{}, coins:0};
@@ -348,6 +363,7 @@ function goMap(){ state='map'; musicStop(); }
 function openLevelSelect(n){ if(n>campaign.unlocked)return; selectedLevel=n; state='levelselect'; }
 function startLevel(n){
   resetGame(); level=n; levelWave=0; state='play';
+  theme=themeFor(n); nebulae.forEach((nb,i)=>nb.c=theme.neb[i%theme.neb.length]); // per-level background mood
   document.getElementById('startScreen').classList.add('hide');
   document.getElementById('overScreen').classList.add('hide');
   musicStart(); beginNextWave();
@@ -400,6 +416,7 @@ function resetGame(){
      weapon:'M', power:1, rapid:0, lives:3, invuln:2, fireCd:0,
      shield:3, shieldMax:3, shieldRegen:0, shieldFlash:0,
      thrust:0, hitFlash:0};
+  mouseCtrl=false; // start neutral — mouse only takes over once the player moves it
   nextLifeAt=LIFE_EVERY; // score threshold for the next free life
   bullets=[]; enemies=[]; ebullets=[]; pups=[]; parts=[]; boss=null;
   stars=[]; for(let i=0;i<110;i++)stars.push({x:Math.random()*W,y:Math.random()*H,z:Math.random(),tw:Math.random()*6});
@@ -418,7 +435,8 @@ function resetGame(){
 // ---------------- Spawning / waves ----------------
 function startWave(n){
   waveActive=true; toSpawn=[]; sfx.wave();
-  const count = Math.min(22, 6 + n*2);
+  // longer waves overall, but the early-game count (n=1..2) is unchanged so it ramps gently
+  const count = Math.min(28, 6 + n*2 + Math.floor(n/3));
   const patterns=['dive','sine','swoop','hover'];
   for(let i=0;i<count;i++){
     const pat=patterns[(n+i)%patterns.length];
@@ -440,7 +458,7 @@ function spawnEnemy(spec){
 }
 function spawnBoss(tier){
   sfx.bossWarn();
-  boss={x:W/2,y:-120,w:150,h:90,hp:55+tier*35,maxhp:55+tier*35,t:0,phase:'enter',
+  boss={x:W/2,y:-120,w:150,h:90,hp:60+tier*40,maxhp:60+tier*40,t:0,phase:'enter',
         fireT:1.4,sweepT:0,flash:0,tier};
 }
 
@@ -448,6 +466,8 @@ function spawnBoss(tier){
 window.addEventListener('keydown',e=>{
   if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space','KeyW','KeyA','KeyS','KeyD','KeyP'].includes(e.code))e.preventDefault();
   ensureAudio();
+  // pressing a movement key hands control back from the mouse to the keyboard
+  if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','KeyW','KeyA','KeyS','KeyD'].includes(e.code))mouseCtrl=false;
   if(!keys[e.code]){
     if(e.code==='Space'){fireHeld=true; if(state==='play')tryFire();}
     if(e.code==='KeyP'&&state==='play'){state='paused'; if(MUSIC.master&&actx)try{MUSIC.master.gain.setTargetAtTime(0.0,actx.currentTime,0.05);}catch(e){}}
@@ -486,6 +506,13 @@ canvas.addEventListener('touchmove',e=>{e.preventDefault();
 },{passive:false});
 canvas.addEventListener('touchend',e=>{for(const t of e.changedTouches){if(t.identifier===dragId){dragId=null;p._grab=false;dragAnchor=null;}}});
 canvas.addEventListener('click',e=>{ if(state==='play')return; const pt=canvasXY(e); handleTap(pt.x,pt.y); });
+// ---------------- Mouse (desktop) ----------------
+// Ship follows the cursor and auto-fires while playing; coexists with keyboard.
+if(!isTouch){
+  canvas.addEventListener('mousemove',e=>{ if(state!=='play')return; const pt=canvasXY(e); p._mx=pt.x; p._my=pt.y; mouseCtrl=true; });
+  canvas.addEventListener('mousedown',e=>{ ensureAudio(); if(state==='play'){const pt=canvasXY(e); p._mx=pt.x; p._my=pt.y; mouseCtrl=true; tryFire();} });
+  canvas.addEventListener('mouseleave',()=>{ mouseCtrl=false; });
+}
 const fireBtn=document.getElementById('tFire');
 if(fireBtn){
   const dn=ev=>{ev.preventDefault();ensureAudio();fireHeld=true;fireBtn.classList.add('press');if(state==='play')tryFire();};
@@ -623,6 +650,9 @@ function update(dt){
   if(p._grab){ // touch: ease toward the relative target set by the drag delta
     p.x+=(p._tx-p.x)*Math.min(1,dt*18); p.y+=(p._ty-p.y)*Math.min(1,dt*18);
     p.thrust=1;
+  } else if(mouseCtrl){ // desktop mouse: ship eases toward the cursor
+    p.x+=(p._mx-p.x)*Math.min(1,dt*18); p.y+=(p._my-p.y)*Math.min(1,dt*18);
+    p.thrust=1;
   } else {
     let mx=(R?1:0)-(L?1:0), my=(D?1:0)-(U?1:0);
     p.x+=mx*p.speed*dt; p.y+=my*p.speed*dt; p.thrust=(U?1:0.4);
@@ -632,7 +662,7 @@ function update(dt){
 
   // firing (auto when held)
   p.fireCd-=dt;
-  if((fireHeld||autoFire)&&p.fireCd<=0)tryFire();
+  if((fireHeld||autoFire||mouseCtrl)&&p.fireCd<=0)tryFire(); // mouse control auto-fires
   if(p.rapid>0)p.rapid-=dt;
   if(p.invuln>0)p.invuln-=dt;
   if(p.hitFlash>0)p.hitFlash-=dt;
@@ -779,7 +809,7 @@ function updateBoss(dt){
   else {
     b.x=W/2+Math.sin(b.t*0.7)*(W/2-110);
     b.fireT-=dt;
-    if(b.fireT<=0){b.fireT=Math.max(0.5,1.3-b.tier*0.2);
+    if(b.fireT<=0){b.fireT=Math.max(0.42,1.3-b.tier*0.22);
       // aimed triple
       const a=Math.atan2(p.y-b.y,p.x-b.x);
       for(let k=-1;k<=1;k++){const aa=a+k*0.26;
@@ -950,9 +980,9 @@ function drawBG(){
   const horizon=H*0.74;
   const beat=MUSIC.kickPulse||0;
   const hg=ctx.createLinearGradient(0,horizon-70,0,horizon+6);
-  hg.addColorStop(0,'rgba(157,78,221,0)');hg.addColorStop(1,`rgba(255,45,149,${0.16+beat*0.22})`);
+  hg.addColorStop(0,`rgba(${theme.grid},0)`);hg.addColorStop(1,`rgba(${theme.glow},${0.16+beat*0.22})`);
   ctx.fillStyle=hg;ctx.fillRect(0,horizon-70,W,80);
-  ctx.strokeStyle=`rgba(157,78,221,${0.26+beat*0.4})`;ctx.lineWidth=1+beat*1.5;
+  ctx.strokeStyle=`rgba(${theme.grid},${0.26+beat*0.4})`;ctx.lineWidth=1+beat*1.5;
   for(let i=0;i<12;i++){
     const t=i/12; const y=horizon + Math.pow(t,1.9)*(H-horizon);
     ctx.globalAlpha=(0.3*(1-t)+0.05)*(1+beat*0.8); ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();
