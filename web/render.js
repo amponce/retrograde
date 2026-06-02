@@ -1,6 +1,6 @@
 import { G } from '../core/state.js';
 import { MUSIC } from './audio.js';
-import { WEAPONS, NUM_LEVELS, LIFE_EVERY, SHIELD_REGEN_DELAY, SHIELD_REGEN_TIME } from '../core/config.js';
+import { WEAPONS, NUM_LEVELS, LIFE_EVERY, WAVES_PER_LEVEL, SHIELD_REGEN_DELAY, SHIELD_REGEN_TIME } from '../core/config.js';
 import { pupKind } from '../core/weapons.js';
 import { levelNodes } from '../core/levels.js';
 

@@ -1,5 +1,5 @@
 // RETROGRADE — service worker (offline + installable)
-const CACHE = 'retrograde-v6';
+const CACHE = 'retrograde-v7';
 const ASSETS = [
   './',
   './index.html',
@@ -7,7 +7,18 @@ const ASSETS = [
   './icon-180.png',
   './icon-192.png',
   './icon-512.png',
-  './icon-maskable-512.png'
+  './icon-maskable-512.png',
+  './core/events.js',
+  './core/config.js',
+  './core/state.js',
+  './core/levels.js',
+  './core/entities.js',
+  './core/weapons.js',
+  './core/step.js',
+  './web/main.js',
+  './web/render.js',
+  './web/audio.js',
+  './web/input.js'
 ];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
