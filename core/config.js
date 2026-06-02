@@ -8,6 +8,9 @@ export const PUP_CYCLE=['M','S','L','B','R','shield']; // capsule cycles through
 
 export const LIFE_EVERY=5000;          // earn a free life each time score crosses a multiple of this
 
+export const SHIELD_REGEN_DELAY=4.0;   // seconds without damage before shield starts regenerating
+export const SHIELD_REGEN_TIME=2.6;    // seconds per shield point regained
+
 export const WAVES_PER_LEVEL=5;   // waves 1..4 are swarms, wave 5 is the boss
 export const NUM_LEVELS=8;
 // Per-level background mood: 3 nebula tints, the horizon glow, and the grid colour.
