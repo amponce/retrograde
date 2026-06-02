@@ -5,6 +5,7 @@ export const G = {
   scene: 'start',           // game-state machine: 'start'|'map'|'levelselect'|'play'|'paused'|'victory'|'complete'|'over'
   campaign: { unlocked: 1, stars: {}, coins: 0 },
   theme: LEVEL_THEMES[0],
+  uiRects: {},              // hit-test rects written by the screen draws, read by input
 };
 export function setViewport(w, h) { G.W = w; G.H = h; }
 
