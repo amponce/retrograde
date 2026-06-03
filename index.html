@@ -122,6 +122,7 @@
         <span class="key"><b>P</b> &nbsp;pause</span>
       </div>
       <button class="btn" id="startBtn">▶ LAUNCH</button>
+      <button class="btn magenta" id="dailyBtn">★ DAILY BEAT</button>
       <div class="small">Tip: capsules cycle weapons — grab the letter you want.</div>
     </div>
   </div>
@@ -132,6 +133,18 @@
       <div class="stat" id="overScore">SCORE 0</div>
       <div class="small" id="overWave">Reached Wave 1</div>
       <button class="btn magenta" id="overBtn">↻ RETRY</button>
+    </div>
+  </div>
+
+  <div class="screen hide" id="dailyCard">
+    <div class="screen-inner">
+      <div class="title" style="font-size:clamp(28px,6vw,44px);text-shadow:0 0 10px var(--cyan),0 0 30px var(--magenta)">DAILY BEAT</div>
+      <div class="small" id="dailyDate">—</div>
+      <div class="stat" id="dailyScore">SCORE 0</div>
+      <div class="small" id="dailyBest">BEST 0</div>
+      <button class="btn" id="dailyShareBtn">⇪ SHARE</button>
+      <button class="btn magenta" id="dailyAgainBtn">↻ PLAY AGAIN</button>
+      <div class="small"><a id="dailyMenuBtn" style="color:#9fb8d0;cursor:pointer">← menu</a></div>
     </div>
   </div>
 

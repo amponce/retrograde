@@ -1,6 +1,8 @@
 import { G } from '../core/state.js';
 import { tryFire } from '../core/weapons.js';
-import { goMap, openLevelSelect, startLevel } from '../core/levels.js';
+import { goMap, openLevelSelect, startLevel, startDaily } from '../core/levels.js';
+import { seedRNG } from '../core/rng.js';
+import { dailySeed, dailyConfig } from '../core/daily.js';
 import { ensureAudio, pauseMusic, resumeMusic, MUSIC } from './audio.js';
 
 // Platform input state (held keys, pointer mode). Lives in the adapter, not the sim.
@@ -23,7 +25,7 @@ function handleTap(x,y){
       if(nd.n<=G.campaign.unlocked && Math.hypot(x-nd.x,y-nd.y)<nd.r+8){ openLevelSelect(nd.n); return; }
     }
   } else if(s==='levelselect'){
-    if(G.uiRects.play && inRect(x,y,G.uiRects.play)){ startLevel(G.selectedLevel); return; }
+    if(G.uiRects.play && inRect(x,y,G.uiRects.play)){ seedRNG((Math.random()*0x100000000)>>>0); startLevel(G.selectedLevel); return; }
     if(G.uiRects.closeLS && inRect(x,y,G.uiRects.closeLS)){ goMap(); return; }
   } else if(s==='victory'){
     if(G.uiRects.vNext && inRect(x,y,G.uiRects.vNext)){
@@ -106,6 +108,8 @@ export function attachInput(canvas, sceneGetter){
   }
 }
 
+export function startDailyToday(){ ensureAudio(); startDaily(dailyConfig(dailySeed(new Date()))); }
+
 // LAUNCH / RETRY DOM buttons. The over/start overlays themselves are shown/hidden by
 // main.js based on G.scene; these handlers just unlock audio and route to the map.
 export function wireScreenButtons(){
@@ -113,4 +117,6 @@ export function wireScreenButtons(){
   const overBtn=document.getElementById('overBtn');
   if(startBtn){ startBtn.addEventListener('pointerdown',ensureAudio,{passive:true}); startBtn.onclick=()=>{ensureAudio();goMap();}; }
   if(overBtn){ overBtn.onclick=()=>{ensureAudio();goMap();}; }
+  const dailyBtn=document.getElementById('dailyBtn');
+  if(dailyBtn){ dailyBtn.onclick=()=>{ startDailyToday(); }; }
 }
