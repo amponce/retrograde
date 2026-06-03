@@ -5,7 +5,7 @@ import { WAVES_PER_LEVEL } from '../core/config.js';
 import { render } from './render.js';
 import { ensureAudio, applyAudioEvents, loadProgress, musicTick } from './audio.js';
 import { attachInput, buildInput, wireScreenButtons, startDailyToday, startOverdriveRun } from './input.js';
-import { goMap } from '../core/levels.js';
+import { goMap, chooseUpgrade } from '../core/levels.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -18,6 +18,8 @@ const runCard = document.getElementById('runCard');
 const runReached = document.getElementById('runReached');
 const runScore = document.getElementById('runScore');
 const runBest = document.getElementById('runBest');
+const draftScreen = document.getElementById('draftScreen');
+const draftEls = [0,1,2].map(i=>document.getElementById('draft'+i));
 const dailyDate = document.getElementById('dailyDate');
 const dailyScore = document.getElementById('dailyScore');
 const dailyBest = document.getElementById('dailyBest');
@@ -46,6 +48,7 @@ function recordOverdriveBest(score){ try{ if(score>overdriveBest())localStorage.
 let cardShownForSeed = null;
 let dailyDateStr = '';
 let runCardShown = false;
+let draftShown = false;
 function syncScreens(){
   startScreen.classList.toggle('hide', G.scene!=='start');
   if(G.scene==='over'){
@@ -83,6 +86,19 @@ function syncScreens(){
     runCard.classList.add('hide');
     runCardShown = false;
   }
+  if(G.scene==='draft' && G.draft){
+    if(!draftShown){
+      const o=G.draft.options;
+      for(let i=0;i<3;i++){ const el=draftEls[i];
+        if(o[i]){ el.style.display=''; el.innerHTML='<b>'+o[i].name+'</b><br><span style="font-size:.62em;opacity:.85;letter-spacing:0">'+o[i].desc+'</span>'; }
+        else el.style.display='none'; }
+      draftShown=true;
+    }
+    draftScreen.classList.remove('hide');
+  } else {
+    draftScreen.classList.add('hide');
+    draftShown=false;
+  }
 }
 
 loadProgress();                       // seed G.campaign from localStorage
@@ -102,6 +118,7 @@ const runAgainBtn = document.getElementById('runAgainBtn');
 const runMenuBtn = document.getElementById('runMenuBtn');
 if(runAgainBtn) runAgainBtn.onclick = startOverdriveRun;
 if(runMenuBtn) runMenuBtn.onclick = () => goMap();
+draftEls.forEach((el,i)=>{ if(el) el.onclick = () => chooseUpgrade(i); });
 
 let lastT=performance.now(), acc=0; const STEP=1/120;
 function frame(now){
