@@ -8,8 +8,10 @@ function tryFire(){
   let cd=wp.cd; if(G.p.rapid>0)cd*=0.55;
   // higher power fires a touch faster too
   cd*=(1 - (G.p.power-1)*0.06);
+  cd*=G.run.fireRate;                 // OVERDRIVE: compounding fire-rate upgrades
   G.p.fireCd=cd;
   const bx=G.p.x, by=G.p.y-20, lv=G.p.power;
+  const start=G.bullets.length;       // mark this shot's bullets for run-modifier post-processing
   if(G.p.weapon==='M'){
     const dmg=1+Math.floor((lv-1)/1)*0.5;
     G.bullets.push(mkB(bx,by,0,-760,'#22e1ff',4+lv*0.5,9+lv,dmg));
@@ -33,6 +35,14 @@ function tryFire(){
     if(lv>=3){G.bullets.push(mkB(bx,by,-130,-470,'#39ff14',7,12,1,false,true));G.bullets.push(mkB(bx,by,130,-470,'#39ff14',7,12,1,false,true));}
     emit('sfx','bomb');
   }
+  // apply OVERDRIVE run modifiers to everything fired this shot
+  const r=G.run;
+  for(let i=start;i<G.bullets.length;i++){ const b=G.bullets[i];
+    b.dmg*=r.dmg; if(r.pierce)b.pierce=true; if(r.bulletSpd!==1){ b.vx*=r.bulletSpd; b.vy*=r.bulletSpd; } }
+  if(r.multishot>0 && G.bullets.length>start){ const base=G.bullets[start];
+    for(let m=1;m<=r.multishot;m++){ const s=(m%2)?1:-1, a=0.16*Math.ceil(m/2)*s;
+      G.bullets.push({...base, x:base.x+12*Math.ceil(m/2)*s,
+        vx:base.vx*Math.cos(a)-base.vy*Math.sin(a), vy:base.vx*Math.sin(a)+base.vy*Math.cos(a)}); } }
 }
 function mkB(x,y,vx,vy,color,r,len,dmg,pierce=false,bomb=false){
   return {x,y,vx,vy,color,r,len,dmg,pierce,bomb,life:2.2,hits:0};

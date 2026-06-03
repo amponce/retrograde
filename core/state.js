@@ -12,6 +12,8 @@ export const G = {
   overdrive: false,         // true while an endless OVERDRIVE run is active
   onBeat: false,            // set each tick from input.onBeat (is this sim step inside a beat window?)
   groove: { mult: 1, chain: 0, t: 0 },
+  run: { fireRate:1, dmg:1, multishot:0, pierce:false, bulletSpd:1, regen:1, picks:[] }, // OVERDRIVE compounding upgrades
+  draft: null,              // {options:[{id,name,desc}]} while picking an upgrade between waves
 };
 export function setViewport(w, h) { G.W = w; G.H = h; }
 
@@ -34,5 +36,6 @@ export function resetGame(){
   G.score=0; G.wave=0; G.shake=0; G.freeze=0; G.pupCycleIdx=0;
   G.groove={mult:1, chain:0, t:0}; G.onBeat=false;
   G.daily=false; G.dailySeed=0; G.overdrive=false;
+  G.run={fireRate:1, dmg:1, multishot:0, pierce:false, bulletSpd:1, regen:1, picks:[]}; G.draft=null;
   G.spawnTimer=0; G.waveActive=false; G.toSpawn=[]; G.betweenWaves=1.2;
 }

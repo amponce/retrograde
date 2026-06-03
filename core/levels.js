@@ -1,6 +1,7 @@
 import { G, resetGame } from './state.js';
 import { emit } from './events.js';
 import { themeFor, NUM_LEVELS, WAVES_PER_LEVEL, LEVEL_THEMES } from './config.js';
+import { rollDraft, applyUpgrade } from './upgrades.js';
 import { rnd, seedRNG } from './rng.js';
 
 function levelNodes(){
@@ -47,7 +48,7 @@ function winLevel(){
   if(G.overdrive){ // endless: clearing a boss escalates to the next, harder set — never "wins"
     emit('sfx','life'); G.level++; G.levelWave=0;
     G.theme=themeFor(G.level); G.nebulae.forEach((nb,i)=>nb.c=G.theme.neb[i%G.theme.neb.length]);
-    beginNextWave(); return;
+    offerDraft(); return;   // reward a draft, then continue on pick
   }
   G.scene='victory'; emit('music','stop');
   const reward=500+G.level*250; G.campaign.coins+=reward;
@@ -57,6 +58,13 @@ function winLevel(){
   G.campaign.unlocked=newUnlock; emit('save');
   G.victoryData={level:G.level, reward, firstClear, last:(G.level>=NUM_LEVELS)};
   emit('sfx','life');
+}
+// OVERDRIVE: between waves, pause into a draft of 3 upgrades; chooseUpgrade resumes.
+function offerDraft(){ G.draft={options:rollDraft(3)}; G.scene='draft'; }
+function chooseUpgrade(idx){
+  if(!G.draft)return;
+  const opt=G.draft.options[idx]; if(opt)applyUpgrade(opt.id);
+  G.draft=null; G.scene='play'; beginNextWave();
 }
 function startWave(n){
   G.waveActive=true; G.toSpawn=[]; emit('sfx','wave');
@@ -71,4 +79,4 @@ function startWave(n){
   for(let c=0;c<carriers;c++){ const idx=Math.floor((c+1)*count/(carriers+1)); if(G.toSpawn[idx])G.toSpawn[idx].tier='carrier'; }
   G.spawnTimer=0;
 }
-export { levelNodes, goMap, openLevelSelect, startLevel, startDaily, startOverdrive, beginNextWave, winLevel, startWave };
+export { levelNodes, goMap, openLevelSelect, startLevel, startDaily, startOverdrive, beginNextWave, winLevel, startWave, offerDraft, chooseUpgrade };
