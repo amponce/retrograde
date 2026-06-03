@@ -1,6 +1,7 @@
 import { G, resetGame } from './state.js';
 import { emit } from './events.js';
 import { themeFor, NUM_LEVELS, WAVES_PER_LEVEL } from './config.js';
+import { rnd } from './rng.js';
 
 function levelNodes(){
   const nodes=[]; const cols=[G.W*0.30,G.W*0.7,G.W*0.5];
@@ -42,7 +43,7 @@ function startWave(n){
   const patterns=['dive','sine','swoop','hover'];
   for(let i=0;i<count;i++){
     const pat=patterns[(n+i)%patterns.length];
-    G.toSpawn.push({pat, delay: i*0.42 + Math.random()*0.2, hp: 1+Math.floor(n/3), tier:'grunt'});
+    G.toSpawn.push({pat, delay: i*0.42 + rnd()*0.2, hp: 1+Math.floor(n/3), tier:'grunt'});
   }
   G.toSpawn[Math.floor(count/2)].tier='carrier';
   if(n%3===0 && G.toSpawn[count-2]) G.toSpawn[count-2].tier='carrier';
