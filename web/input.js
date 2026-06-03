@@ -118,5 +118,5 @@ export function wireScreenButtons(){
   if(startBtn){ startBtn.addEventListener('pointerdown',ensureAudio,{passive:true}); startBtn.onclick=()=>{ensureAudio();goMap();}; }
   if(overBtn){ overBtn.onclick=()=>{ensureAudio();goMap();}; }
   const dailyBtn=document.getElementById('dailyBtn');
-  if(dailyBtn){ dailyBtn.onclick=()=>{ startDailyToday(); }; }
+  if(dailyBtn){ dailyBtn.onclick=startDailyToday; }
 }

@@ -38,6 +38,7 @@ function recordDailyBest(seed, score){
 }
 
 let cardShownForSeed = null;
+let dailyDateStr = '';
 function syncScreens(){
   startScreen.classList.toggle('hide', G.scene!=='start');
   if(G.scene==='over'){
@@ -50,7 +51,8 @@ function syncScreens(){
   if(G.scene==='dailyend'){
     if(cardShownForSeed!==G.dailySeed){
       recordDailyBest(G.dailySeed, G.score);
-      dailyDate.textContent = new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});
+      dailyDateStr = new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});
+      dailyDate.textContent = dailyDateStr;
       dailyScore.textContent = 'SCORE '+G.score;
       dailyBest.textContent = 'BEST '+dailyBestFor(G.dailySeed);
       cardShownForSeed = G.dailySeed;
@@ -59,6 +61,7 @@ function syncScreens(){
   } else {
     dailyCard.classList.add('hide');
     cardShownForSeed = null;
+    if(dailyShareBtn) dailyShareBtn.textContent='⇪ SHARE';
   }
 }
 
@@ -68,14 +71,13 @@ wireScreenButtons();                  // LAUNCH / RETRY buttons
 const dailyShareBtn = document.getElementById('dailyShareBtn');
 const dailyAgainBtn = document.getElementById('dailyAgainBtn');
 const dailyMenuBtn = document.getElementById('dailyMenuBtn');
-dailyShareBtn.onclick = async () => {
-  const dateStr = new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});
-  const text = `RETROGRADE — Daily Beat ${dateStr}: ${G.score} ◎  ${location.origin}`;
+if(dailyShareBtn) dailyShareBtn.onclick = async () => {
+  const text = `RETROGRADE — Daily Beat ${dailyDateStr}: ${G.score} ◎  ${location.origin}`;
   try { if(navigator.share) await navigator.share({ title:'RETROGRADE Daily Beat', text }); else { await navigator.clipboard.writeText(text); dailyShareBtn.textContent='COPIED ✓'; } }
   catch(e){}
 };
-dailyAgainBtn.onclick = () => startDailyToday();
-dailyMenuBtn.onclick = () => goMap();
+if(dailyAgainBtn) dailyAgainBtn.onclick = startDailyToday;
+if(dailyMenuBtn) dailyMenuBtn.onclick = () => goMap();
 
 let lastT=performance.now(), acc=0; const STEP=1/120;
 function frame(now){
