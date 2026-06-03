@@ -187,7 +187,10 @@ function hurtPlayer(){
   G.freeze=0.08;
   if(G.p.lives<=0)gameOver();
 }
-function gameOver(){ G.scene='over'; emit('sfx','over'); emit('music','stop'); }
+function gameOver(){
+  if(G.daily){ G.scene='dailyend'; emit('sfx','over'); emit('music','stop'); return; }
+  G.scene='over'; emit('sfx','over'); emit('music','stop');
+}
 
 // ---------------- Boss ----------------
 function updateBoss(dt){

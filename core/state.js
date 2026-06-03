@@ -7,6 +7,8 @@ export const G = {
   campaign: { unlocked: 1, stars: {}, coins: 0 },
   theme: LEVEL_THEMES[0],
   uiRects: {},              // hit-test rects written by the screen draws, read by input
+  daily: false,             // true while a Daily Beat run is active
+  dailySeed: 0,             // the seed of the active daily run
 };
 export function setViewport(w, h) { G.W = w; G.H = h; }
 
