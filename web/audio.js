@@ -138,8 +138,11 @@ function musicScheduleStep(stepIdx,t){
 // This is the audio->sim feedback path: it mutates G on the music clock (core's advance()
 // handles only the music-off fallback via input.musicOn).
 let beatVisual=0, beatNum=0;
+let lastBeatAt = -1;            // actx.currentTime of the most recent quarter-note
+const BEAT_WINDOW = 0.13;       // seconds after a beat that counts as "on beat"
 function onMusicBeat(ev){
   if(G.scene!=='play')return;
+  lastBeatAt = actx ? actx.currentTime : lastBeatAt;
   beatVisual=1; beatNum=(beatNum+1)%4;
   const onSnare=(ev.beatInBar===1||ev.beatInBar===3);
   // charged enemies fire on the beat; snare beats = full volley, off-beats = lighter
@@ -188,6 +191,10 @@ export function musicTick(dt=0){
 // Pause/resume music gain ducking (KeyP), driven by the input adapter.
 export function pauseMusic(){ if(MUSIC.master&&actx)try{MUSIC.master.gain.setTargetAtTime(0.0,actx.currentTime,0.05);}catch(e){} }
 export function resumeMusic(){ if(MUSIC.master&&actx)try{MUSIC.master.gain.setTargetAtTime(0.85,actx.currentTime,0.1);}catch(e){} }
+
+// True while the audio clock is within BEAT_WINDOW after a quarter-note — the input
+// adapter feeds this to the sim as input.onBeat so on-beat kills build groove.
+export function onBeatNow(){ return !!actx && lastBeatAt >= 0 && (actx.currentTime - lastBeatAt) < BEAT_WINDOW; }
 
 // ---------------- Persistence (localStorage) ----------------
 function saveProgress(){try{localStorage.setItem('retrograde_save',JSON.stringify(G.campaign));}catch(e){}}

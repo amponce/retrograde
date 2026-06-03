@@ -9,6 +9,8 @@ export const G = {
   uiRects: {},              // hit-test rects written by the screen draws, read by input
   daily: false,             // true while a Daily Beat run is active
   dailySeed: 0,             // the seed of the active daily run
+  onBeat: false,            // set each tick from input.onBeat (is this sim step inside a beat window?)
+  groove: { mult: 1, chain: 0, t: 0 },
 };
 export function setViewport(w, h) { G.W = w; G.H = h; }
 
@@ -29,6 +31,7 @@ export function resetGame(){
   G.planet={x:G.W*0.78,y:G.H*0.2,r:54,vy:3};
   G.shootingStars=[]; G.shootTimer=2+rnd()*4;
   G.score=0; G.wave=0; G.shake=0; G.freeze=0; G.pupCycleIdx=0;
+  G.groove={mult:1, chain:0, t:0}; G.onBeat=false;
   G.daily=false; G.dailySeed=0;
   G.spawnTimer=0; G.waveActive=false; G.toSpawn=[]; G.betweenWaves=1.2;
 }

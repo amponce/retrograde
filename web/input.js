@@ -3,7 +3,7 @@ import { tryFire } from '../core/weapons.js';
 import { goMap, openLevelSelect, startLevel, startDaily } from '../core/levels.js';
 import { seedRNG } from '../core/rng.js';
 import { dailySeed, dailyConfig } from '../core/daily.js';
-import { ensureAudio, pauseMusic, resumeMusic, MUSIC } from './audio.js';
+import { ensureAudio, pauseMusic, resumeMusic, MUSIC, onBeatNow } from './audio.js';
 
 // Platform input state (held keys, pointer mode). Lives in the adapter, not the sim.
 const keys={};
@@ -48,6 +48,7 @@ export function buildInput(){
     mouseActive: mouseCtrl,
     mx, my, grab, tx, ty,
     musicOn: MUSIC.on,               // music-off firing fallback in the sim reads this
+    onBeat: onBeatNow(),             // sim awards groove for kills inside the beat window
   };
 }
 
