@@ -269,12 +269,10 @@ function drawEnemy(e){
     ctx.beginPath();ctx.ellipse(x,y-h*0.05,2.6,4.5,0,0,7);ctx.fill();
   }
   if(e.charged){
-    // READ: cyan windup telegraphs the on-beat shot — a faint aim line + pulsing ring
-    const px=G.p?G.p.x:x, py=G.p?G.p.y:y;
+    // about-to-fire pulse — a quick red charge glow on the enemy itself (no aim line)
     ctx.save();
-    ctx.globalAlpha=0.5+0.3*Math.sin(Date.now()*0.02);
-    ctx.strokeStyle='#22e1ff'; ctx.lineWidth=1.5; ctx.shadowBlur=8; ctx.shadowColor='#22e1ff';
-    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+(px-x)*0.4, y+(py-y)*0.4); ctx.stroke();
+    ctx.globalAlpha=0.3+0.3*Math.sin(Date.now()*0.018);
+    ctx.strokeStyle='#ff3b2f'; ctx.lineWidth=2; ctx.shadowBlur=10; ctx.shadowColor='#ff3b2f';
     ctx.beginPath(); ctx.arc(x,y,e.w*0.7,0,7); ctx.stroke();
     ctx.restore();
   }
