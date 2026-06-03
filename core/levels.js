@@ -49,14 +49,14 @@ function winLevel(){
 }
 function startWave(n){
   G.waveActive=true; G.toSpawn=[]; emit('sfx','wave');
-  const count = Math.min(28, 9 + Math.floor(n*1.1)); // gentle ramp on the global wave number
+  const count = Math.min(26, 8 + n);     // gentler ramp; fewer on screen at once
   const patterns=['dive','sine','swoop','hover'];
   for(let i=0;i<count;i++){
     const pat=patterns[(n+i)%patterns.length];
-    G.toSpawn.push({pat, delay: i*0.40 + rnd()*0.18, hp: 1+Math.floor(n/5), tier:'grunt'});
+    G.toSpawn.push({pat, delay: i*0.44 + rnd()*0.18, hp: 1+Math.floor(n/6), tier:'grunt'}); // slower HP ramp, more spread out
   }
   // a few carrier (capsule-dropping) enemies, spread through the wave (capped so late levels stay fair)
-  const carriers=Math.min(3, 1+Math.floor(n/5));
+  const carriers=Math.min(3, 1+Math.floor(n/6));
   for(let c=0;c<carriers;c++){ const idx=Math.floor((c+1)*count/(carriers+1)); if(G.toSpawn[idx])G.toSpawn[idx].tier='carrier'; }
   G.spawnTimer=0;
 }
