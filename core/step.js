@@ -3,7 +3,7 @@ import { emit } from './events.js';
 import { rnd } from './rng.js';
 import { spawnEnemy, spawnBoss } from './entities.js';
 import { tryFire, dropPup, pupKind, applyPup } from './weapons.js';
-import { startWave, beginNextWave, winLevel, offerDraft } from './levels.js';
+import { startWave, beginNextWave, winLevel } from './levels.js';
 import { WAVES_PER_LEVEL, LIFE_EVERY, PUP_CYCLE, SHIELD_REGEN_DELAY, SHIELD_REGEN_TIME } from './config.js';
 import { grooveKill, grooveHit, grooveTick, grooveMult } from './groove.js';
 
@@ -83,8 +83,7 @@ export function advance(input, dt){
       if(G.toSpawn.length===0 && G.enemies.length===0 && !G.boss){
         G.waveActive=false;
         addScore(100 + G.wave*50); // wave-clear bonus
-        if(G.overdrive) offerDraft();   // OVERDRIVE: pick an upgrade, then continue
-        else beginNextWave();           // → next wave intermission, or BOSS
+        beginNextWave();           // → next wave intermission, or BOSS (OVERDRIVE drafts only on boss clear)
       }
     }
   }
