@@ -268,6 +268,16 @@ function drawEnemy(e){
     ctx.shadowBlur=8;ctx.shadowColor='#ffd23a';ctx.fillStyle=fl?'#fff':'#ffd23a';
     ctx.beginPath();ctx.ellipse(x,y-h*0.05,2.6,4.5,0,0,7);ctx.fill();
   }
+  if(e.charged){
+    // READ: cyan windup telegraphs the on-beat shot — a faint aim line + pulsing ring
+    const px=G.p?G.p.x:x, py=G.p?G.p.y:y;
+    ctx.save();
+    ctx.globalAlpha=0.5+0.3*Math.sin(Date.now()*0.02);
+    ctx.strokeStyle='#22e1ff'; ctx.lineWidth=1.5; ctx.shadowBlur=8; ctx.shadowColor='#22e1ff';
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+(px-x)*0.4, y+(py-y)*0.4); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x,y,e.w*0.7,0,7); ctx.stroke();
+    ctx.restore();
+  }
   ctx.restore();
 }
 
@@ -298,7 +308,15 @@ function drawBullet(b){
   ctx.fillStyle='#fff';ctx.globalAlpha=0.8;rr(b.x-b.r/4,b.y-b.len/2,b.r/2,b.len*0.5,1);ctx.fill();
   ctx.restore();
 }
-function drawEB(eb){glowDot(eb.x,eb.y,eb.r,eb.color,10);}
+function drawEB(eb){
+  ctx.save();
+  ctx.shadowBlur=10; ctx.shadowColor='#ff3b2f';
+  ctx.fillStyle='#ff3b2f'; ctx.beginPath(); ctx.arc(eb.x,eb.y,eb.r+1,0,7); ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.lineWidth=1.5; ctx.strokeStyle='rgba(10,4,19,.9)'; ctx.beginPath(); ctx.arc(eb.x,eb.y,eb.r+1,0,7); ctx.stroke(); // dark outline
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(eb.x,eb.y,eb.r*0.45,0,7); ctx.fill(); // hot core
+  ctx.restore();
+}
 
 function drawPup(pu){
   const kind=pupKind(pu);
@@ -329,6 +347,15 @@ function drawHUD(){
   if(MUSIC.on){const bx=72,by=46,beat=MUSIC.beatPulse||0;
     for(let i=0;i<3;i++){const hgt=4+ (i===1?beat*10:beat*6) + Math.sin(Date.now()*0.01+i)*1.5;
       ctx.fillStyle=`rgba(34,225,255,${0.5+beat*0.5})`;ctx.fillRect(bx+i*5,by-hgt,3,hgt);}
+  }
+  if(G.groove && G.groove.mult>1){
+    const m=G.groove.mult;
+    ctx.save();
+    ctx.font="700 "+(16+m)+"px 'Audiowide', sans-serif"; ctx.textAlign='left'; ctx.textBaseline='middle';
+    ctx.shadowBlur=10; ctx.shadowColor='#39ff14'; ctx.fillStyle='#39ff14';
+    ctx.fillText('×'+m, 92, 30);
+    ctx.restore();
+    ctx.textBaseline='alphabetic';
   }
   // lives (ships)
   for(let i=0;i<p.lives;i++){const lx=G.W-24-i*26, ly=28;
@@ -392,6 +419,8 @@ function drawPaused(){
 function drawScene(){
   ctx.save();
   if(G.shake>0)ctx.translate((Math.random()-0.5)*G.shake,(Math.random()-0.5)*G.shake);
+  const k=1+(MUSIC.kickPulse||0)*0.012;            // gentle breathe on the kick
+  ctx.translate(G.W/2,G.H/2); ctx.scale(k,k); ctx.translate(-G.W/2,-G.H/2);
   drawBG();
   for(const pu of G.pups)drawPup(pu);
   for(const b of G.bullets)drawBullet(b);
