@@ -450,7 +450,37 @@ function animateMenu(dt){
   for(const n of G.nebulae){n.y+=n.vy*dt*0.3; if(n.y-n.r>G.H){n.y=-n.r;n.x=Math.random()*G.W;}}
 }
 
-// Single entry point: dispatches by scene (was the rAF loop's scene switch).
+// ---------------- Post-processing (procedural "premium synthwave" pass) ----------------
+// All effects work in DEVICE pixels (transform reset), so they're independent of the dpr
+// scale the scene is drawn with. Bloom: downscale + blur the whole frame, add it back.
+let _bloom;
+function postFX(){
+  const cv=ctx.canvas, w=cv.width, h=cv.height; if(w<2||h<2)return;
+  const bw=Math.max(1,w>>1), bh=Math.max(1,h>>1);
+  if(!_bloom) _bloom=document.createElement('canvas');
+  if(_bloom.width!==bw||_bloom.height!==bh){ _bloom.width=bw; _bloom.height=bh; }
+  const bx=_bloom.getContext('2d');
+  bx.clearRect(0,0,bw,bh);
+  bx.filter='blur(4px)'; bx.drawImage(cv,0,0,bw,bh); bx.filter='none';   // blurred half-res copy
+  ctx.save(); ctx.setTransform(1,0,0,1,0,0);
+  ctx.globalCompositeOperation='lighter'; ctx.globalAlpha=0.5;            // add the glow back
+  ctx.drawImage(_bloom,0,0,w,h);
+  ctx.restore(); ctx.globalAlpha=1;
+}
+function overlayFX(){
+  const cv=ctx.canvas, w=cv.width, h=cv.height;
+  ctx.save(); ctx.setTransform(1,0,0,1,0,0);
+  // vignette — darken the edges for depth/focus
+  const g=ctx.createRadialGradient(w/2,h*0.46,Math.min(w,h)*0.32,w/2,h/2,Math.max(w,h)*0.72);
+  g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,0.42)');
+  ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+  // faint CRT scanlines
+  ctx.globalAlpha=0.05; ctx.fillStyle='#000';
+  for(let y=0;y<h;y+=3) ctx.fillRect(0,y,w,1);
+  ctx.restore(); ctx.globalAlpha=1;
+}
+
+// Single entry point: dispatches by scene (was the rAF loop's scene switch), then post-FX.
 export function render(_ctx, dt=0){
   ctx=_ctx;
   const s=G.scene;
@@ -459,4 +489,5 @@ export function render(_ctx, dt=0){
   else if(s==='victory'){ animateMenu(dt); drawVictory(); }
   else if(s==='complete'){ animateMenu(dt); drawComplete(); }
   else { drawScene(); } // play, paused, over, start
+  postFX(); overlayFX();
 }
