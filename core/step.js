@@ -5,6 +5,7 @@ import { spawnEnemy, spawnBoss } from './entities.js';
 import { tryFire, dropPup, pupKind, applyPup } from './weapons.js';
 import { startWave, beginNextWave, winLevel } from './levels.js';
 import { WAVES_PER_LEVEL, LIFE_EVERY, PUP_CYCLE, SHIELD_REGEN_DELAY, SHIELD_REGEN_TIME } from './config.js';
+import { grooveKill, grooveHit, grooveTick, grooveMult } from './groove.js';
 
 // ---------------- Sim helpers ----------------
 function boom(x,y,color,n,sp){for(let i=0;i<n;i++){const a=rnd()*6.28,s=sp*(0.3+rnd());
@@ -18,6 +19,7 @@ function rectHit(a,b){return Math.abs(a.x-b.x)<(a.w/2+b.w/2)&&Math.abs(a.y-b.y)<
 // The web input adapter folds touch auto-fire into `fire`, and reports the audio
 // engine's running state as `musicOn` (used only for the music-off firing fallback).
 export function advance(input, dt){
+  G.onBeat = !!input.onBeat;
   // starfield + grid scroll
   for(const s of G.stars){s.y+=(40+s.z*120)*dt; if(s.y>G.H){s.y=-4;s.x=rnd()*G.W;} s.tw+=dt*3;}
   G.grid.off=(G.grid.off+dt*120)%60;
@@ -154,6 +156,7 @@ export function advance(input, dt){
   for(const pt of G.parts){pt.age+=dt;pt.x+=pt.vx*dt;pt.y+=pt.vy*dt;pt.vx*=0.96;pt.vy*=0.96;}
   G.parts=G.parts.filter(pt=>pt.age<pt.life);
 
+  grooveTick(dt);
   if(G.shake>0)G.shake=Math.max(0,G.shake-dt*40);
   if(G.pupMsg){G.pupMsg.age+=dt;if(G.pupMsg.age>1.6)G.pupMsg=null;}
   if(G.lifeMsg){G.lifeMsg.age+=dt;if(G.lifeMsg.age>2.0)G.lifeMsg=null;}
@@ -170,7 +173,12 @@ function addScore(n){
 }
 function killEnemy(e,silent){
   const idx=G.enemies.indexOf(e); if(idx>=0)G.enemies.splice(idx,1);
-  addScore(e.carrier?50:10); boom(e.x,e.y,e.carrier?'#ffd23a':'#ff2d95',e.carrier?20:12,e.carrier?260:200);
+  const ob=G.onBeat;
+  addScore(Math.round((e.carrier?50:10)*grooveMult()));   // groove multiplies kill score
+  grooveKill(ob);                                          // on-beat kills build the chain
+  // beefier, brighter debris on on-beat kills (the trailer money-shot)
+  boom(e.x,e.y,e.carrier?'#ffd23a':'#ff2d95',Math.round((e.carrier?20:12)*(ob?1.6:1)),(e.carrier?260:200)*(ob?1.2:1));
+  if(ob||e.carrier)G.freeze=Math.max(G.freeze, e.carrier?0.06:0.035); // beat-locked hitstop on significant / on-beat kills
   if(!silent)emit('sfx','boom'); addShake(e.carrier?4:2);
   if(e.carrier)dropPup(e.x,e.y);
 }
@@ -178,6 +186,7 @@ function bombSplash(x,y){boom(x,y,'#39ff14',16,300);addShake(5);emit('sfx','boom
   for(const e of G.enemies){if(Math.abs(e.x-x)<70&&Math.abs(e.y-y)<70){e.hp-=3;e.flash=0.1;if(e.hp<=0)killEnemy(e);}}
   if(G.boss&&G.boss.phase!=='enter'&&Math.abs(G.boss.x-x)<90&&Math.abs(G.boss.y-y)<90){G.boss.hp-=4;G.boss.flash=0.08;if(G.boss&&G.boss.hp<=0)killBoss();}}
 function hurtPlayer(){
+  grooveHit();                       // any hit (even on shield) breaks your groove
   if(G.p.shield>0){
     G.p.shield--; G.p.invuln=1.0; G.p.shieldRegen=0; G.p.shieldFlash=0.4;
     emit('sfx','shieldBreak'); boom(G.p.x,G.p.y,'#22e1ff',16,220); addShake(5);
@@ -215,9 +224,10 @@ function updateBoss(dt){
   }
 }
 function killBoss(){
+  const tier=G.boss.tier;
   boom(G.boss.x,G.boss.y,'#ffd23a',40,360); boom(G.boss.x,G.boss.y,'#ff2d95',30,300);
-  addShake(14); emit('sfx','bossKill'); // web audio maps 'bossKill' → the original cascading triple boom (0/120/240ms)
-  addScore(300+G.boss.tier*200); G.boss=null;
+  addShake(14); emit('sfx','bossKill'); G.freeze=Math.max(G.freeze,0.12); // web audio maps 'bossKill' → the original cascading triple boom (0/120/240ms)
+  addScore(Math.round((300+tier*200)*grooveMult())); grooveKill(G.onBeat); G.boss=null;
   winLevel();
 }
 
