@@ -1,6 +1,7 @@
 import { G, resetGame } from './state.js';
 import { emit } from './events.js';
-import { themeFor, NUM_LEVELS, WAVES_PER_LEVEL } from './config.js';
+import { themeFor, NUM_LEVELS, WAVES_PER_LEVEL, LEVEL_THEMES } from './config.js';
+import { rnd, seedRNG } from './rng.js';
 
 function levelNodes(){
   const nodes=[]; const cols=[G.W*0.30,G.W*0.7,G.W*0.5];
@@ -14,8 +15,17 @@ function levelNodes(){
 function goMap(){ G.scene='map'; emit('music','stop'); }
 function openLevelSelect(n){ if(n>G.campaign.unlocked)return; G.selectedLevel=n; G.scene='levelselect'; }
 function startLevel(n){
-  resetGame(); G.level=n; G.levelWave=0; G.scene='play';
+  resetGame(); G.daily=false; G.level=n; G.levelWave=0; G.scene='play';
   G.theme=themeFor(n); G.nebulae.forEach((nb,i)=>nb.c=G.theme.neb[i%G.theme.neb.length]);
+  emit('music','start'); beginNextWave();
+}
+function startDaily(config){
+  seedRNG(config.seed);                 // seed BEFORE resetGame so the whole run replays
+  resetGame();
+  G.daily=true; G.dailySeed=config.seed;
+  G.level=config.difficulty; G.levelWave=0; G.scene='play';
+  G.theme=LEVEL_THEMES[config.theme % LEVEL_THEMES.length];
+  G.nebulae.forEach((nb,i)=>nb.c=G.theme.neb[i%G.theme.neb.length]);
   emit('music','start'); beginNextWave();
 }
 function beginNextWave(){
@@ -27,6 +37,7 @@ function beginNextWave(){
   else { G.interT=1.8; G.interLabel='WAVE '+G.levelWave+'/'+(WAVES_PER_LEVEL); G.interSub='Level '+G.level; }
 }
 function winLevel(){
+  if(G.daily){ G.scene='dailyend'; emit('music','stop'); emit('sfx','life'); return; }
   G.scene='victory'; emit('music','stop');
   const reward=500+G.level*250; G.campaign.coins+=reward;
   const newUnlock = Math.max(G.campaign.unlocked, Math.min(NUM_LEVELS, G.level+1));
@@ -42,10 +53,10 @@ function startWave(n){
   const patterns=['dive','sine','swoop','hover'];
   for(let i=0;i<count;i++){
     const pat=patterns[(n+i)%patterns.length];
-    G.toSpawn.push({pat, delay: i*0.42 + Math.random()*0.2, hp: 1+Math.floor(n/3), tier:'grunt'});
+    G.toSpawn.push({pat, delay: i*0.42 + rnd()*0.2, hp: 1+Math.floor(n/3), tier:'grunt'});
   }
   G.toSpawn[Math.floor(count/2)].tier='carrier';
   if(n%3===0 && G.toSpawn[count-2]) G.toSpawn[count-2].tier='carrier';
   G.spawnTimer=0;
 }
-export { levelNodes, goMap, openLevelSelect, startLevel, beginNextWave, winLevel, startWave };
+export { levelNodes, goMap, openLevelSelect, startLevel, startDaily, beginNextWave, winLevel, startWave };

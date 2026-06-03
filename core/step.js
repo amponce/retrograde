@@ -1,13 +1,14 @@
 import { G } from './state.js';
 import { emit } from './events.js';
+import { rnd } from './rng.js';
 import { spawnEnemy, spawnBoss } from './entities.js';
 import { tryFire, dropPup, pupKind, applyPup } from './weapons.js';
 import { startWave, beginNextWave, winLevel } from './levels.js';
 import { WAVES_PER_LEVEL, LIFE_EVERY, PUP_CYCLE, SHIELD_REGEN_DELAY, SHIELD_REGEN_TIME } from './config.js';
 
 // ---------------- Sim helpers ----------------
-function boom(x,y,color,n,sp){for(let i=0;i<n;i++){const a=Math.random()*6.28,s=sp*(0.3+Math.random());
-  G.parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:0.4+Math.random()*0.5,age:0,color,r:1.5+Math.random()*3});}}
+function boom(x,y,color,n,sp){for(let i=0;i<n;i++){const a=rnd()*6.28,s=sp*(0.3+rnd());
+  G.parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:0.4+rnd()*0.5,age:0,color,r:1.5+rnd()*3});}}
 function addShake(m){G.shake=Math.max(G.shake,m);}
 function rectHit(a,b){return Math.abs(a.x-b.x)<(a.w/2+b.w/2)&&Math.abs(a.y-b.y)<(a.h/2+b.h/2);}
 
@@ -18,15 +19,15 @@ function rectHit(a,b){return Math.abs(a.x-b.x)<(a.w/2+b.w/2)&&Math.abs(a.y-b.y)<
 // engine's running state as `musicOn` (used only for the music-off firing fallback).
 export function advance(input, dt){
   // starfield + grid scroll
-  for(const s of G.stars){s.y+=(40+s.z*120)*dt; if(s.y>G.H){s.y=-4;s.x=Math.random()*G.W;} s.tw+=dt*3;}
+  for(const s of G.stars){s.y+=(40+s.z*120)*dt; if(s.y>G.H){s.y=-4;s.x=rnd()*G.W;} s.tw+=dt*3;}
   G.grid.off=(G.grid.off+dt*120)%60;
   // drifting nebulae + planet (slow, parallax-ish)
-  for(const n of G.nebulae){n.y+=n.vy*dt; if(n.y-n.r>G.H){n.y=-n.r;n.x=Math.random()*G.W;}}
-  G.planet.y+=G.planet.vy*dt; if(G.planet.y-G.planet.r>G.H){G.planet.y=-G.planet.r;G.planet.x=80+Math.random()*(G.W-160);}
+  for(const n of G.nebulae){n.y+=n.vy*dt; if(n.y-n.r>G.H){n.y=-n.r;n.x=rnd()*G.W;}}
+  G.planet.y+=G.planet.vy*dt; if(G.planet.y-G.planet.r>G.H){G.planet.y=-G.planet.r;G.planet.x=80+rnd()*(G.W-160);}
   // shooting stars
   G.shootTimer-=dt;
-  if(G.shootTimer<=0){G.shootTimer=3+Math.random()*5;
-    const sx=Math.random()*G.W, ang=Math.PI*0.25+Math.random()*0.3;
+  if(G.shootTimer<=0){G.shootTimer=3+rnd()*5;
+    const sx=rnd()*G.W, ang=Math.PI*0.25+rnd()*0.3;
     G.shootingStars.push({x:sx,y:-10,vx:Math.cos(ang)*420,vy:Math.sin(ang)*420,life:1.2,age:0});}
   for(const ss of G.shootingStars){ss.x+=ss.vx*dt;ss.y+=ss.vy*dt;ss.age+=dt;}
   G.shootingStars=G.shootingStars.filter(ss=>ss.age<ss.life);
@@ -94,7 +95,7 @@ export function advance(input, dt){
     else if(e.pat==='hover'){e.y+=(e.y<140?e.vy:0)*dt; e.x=e.baseX+Math.sin(e.t*1.6)*e.amp;}
     // charge up, then fire on the next musical beat (handled in web onMusicBeat)
     e.fireT-=dt;
-    if(e.fireT<=0 && !e.charged){e.charged=true; e.fireT=1.1+Math.random()*1.4;}
+    if(e.fireT<=0 && !e.charged){e.charged=true; e.fireT=1.1+rnd()*1.4;}
     // fallback if music is somehow off: fire on the timer directly
     if(!input.musicOn && e.charged && e.y>0 && e.y<G.H*0.7){e.charged=false;
       const a=Math.atan2(G.p.y-e.y,G.p.x-e.x);
@@ -186,7 +187,10 @@ function hurtPlayer(){
   G.freeze=0.08;
   if(G.p.lives<=0)gameOver();
 }
-function gameOver(){ G.scene='over'; emit('sfx','over'); emit('music','stop'); }
+function gameOver(){
+  if(G.daily){ G.scene='dailyend'; emit('sfx','over'); emit('music','stop'); return; }
+  G.scene='over'; emit('sfx','over'); emit('music','stop');
+}
 
 // ---------------- Boss ----------------
 function updateBoss(dt){
