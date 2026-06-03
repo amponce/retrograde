@@ -208,16 +208,16 @@ function updateBoss(dt){
   else {
     b.x=G.W/2+Math.sin(b.t*0.7)*(G.W/2-110);
     b.fireT-=dt;
-    if(b.fireT<=0){b.fireT=Math.max(0.42,1.3-b.tier*0.22);
+    if(b.fireT<=0){b.fireT=Math.max(0.34,1.15-b.tier*0.2);
       // aimed triple
       const a=Math.atan2(G.p.y-b.y,G.p.x-b.x);
       for(let k=-1;k<=1;k++){const aa=a+k*0.26;
         G.ebullets.push({x:b.x,y:b.y+b.h/2,vx:Math.cos(aa)*230,vy:Math.sin(aa)*230,r:6,color:'#ff5a2a',life:6});}
     }
     b.sweepT-=dt;
-    if(b.sweepT<=0){b.sweepT=2.4;
+    if(b.sweepT<=0){b.sweepT=2.0;
       // radial burst
-      const N=10+b.tier*2;
+      const N=12+b.tier*3;
       for(let k=0;k<N;k++){const aa=(k/N)*Math.PI + Math.PI*0.0;
         G.ebullets.push({x:b.x,y:b.y+b.h/2,vx:Math.cos(aa)*150,vy:Math.abs(Math.sin(aa))*150+40,r:5,color:'#9d4edd',life:6});}
     }

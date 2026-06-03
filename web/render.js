@@ -333,8 +333,12 @@ function drawPup(pu){
   ctx.restore();ctx.textAlign='left';ctx.textBaseline='alphabetic';
 }
 
-function drawParticles(){for(const pt of G.parts){ctx.globalAlpha=Math.max(0,1-pt.age/pt.life);
-  glowDot(pt.x,pt.y,pt.r,pt.color,8);}ctx.globalAlpha=1;}
+function drawParticles(){
+  ctx.save(); ctx.globalCompositeOperation='lighter';        // additive bloom — explosions glow and stack
+  for(const pt of G.parts){ctx.globalAlpha=Math.max(0,1-pt.age/pt.life);
+    glowDot(pt.x,pt.y,pt.r*1.3,pt.color,11);}
+  ctx.restore(); ctx.globalAlpha=1;
+}
 
 function drawHUD(){
   const p=G.p;
@@ -357,10 +361,13 @@ function drawHUD(){
     ctx.restore();
     ctx.textBaseline='alphabetic';
   }
-  // lives (ships)
-  for(let i=0;i<p.lives;i++){const lx=G.W-24-i*26, ly=28;
+  // lives (ships) — cap the drawn icons so a high life count can't overrun the score
+  const shownLives=Math.min(p.lives,5);
+  for(let i=0;i<shownLives;i++){const lx=G.W-24-i*26, ly=28;
     ctx.save();ctx.shadowBlur=8;ctx.shadowColor='#22e1ff';ctx.fillStyle='#22e1ff';
     ctx.beginPath();ctx.moveTo(lx,ly-8);ctx.lineTo(lx+7,ly+7);ctx.lineTo(lx,ly+4);ctx.lineTo(lx-7,ly+7);ctx.closePath();ctx.fill();ctx.restore();}
+  if(p.lives>5){ ctx.save();ctx.fillStyle='#22e1ff';ctx.font="700 13px 'Audiowide', sans-serif";ctx.textAlign='right';ctx.textBaseline='middle';
+    ctx.shadowBlur=6;ctx.shadowColor='#22e1ff';ctx.fillText('×'+p.lives, G.W-24-5*26+10, 28);ctx.restore();ctx.textAlign='left';ctx.textBaseline='alphabetic'; }
   // weapon indicator
   const wp=WEAPONS[p.weapon];
   ctx.fillStyle=wp.color;ctx.font="700 14px 'Audiowide', sans-serif";

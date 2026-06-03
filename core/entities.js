@@ -14,7 +14,7 @@ function spawnEnemy(spec){
 }
 function spawnBoss(tier){
   emit('sfx','bossWarn');
-  G.boss={x:G.W/2,y:-120,w:150,h:90,hp:60+tier*40,maxhp:60+tier*40,t:0,phase:'enter',
+  G.boss={x:G.W/2,y:-120,w:150,h:90,hp:90+tier*55,maxhp:90+tier*55,t:0,phase:'enter',
         fireT:1.4,sweepT:0,flash:0,tier};
 }
 export { spawnEnemy, spawnBoss };
