@@ -4,7 +4,7 @@ import { drainEvents } from '../core/events.js';
 import { WAVES_PER_LEVEL } from '../core/config.js';
 import { render } from './render.js';
 import { ensureAudio, applyAudioEvents, loadProgress, musicTick } from './audio.js';
-import { attachInput, buildInput, wireScreenButtons, startDailyToday } from './input.js';
+import { attachInput, buildInput, wireScreenButtons, startDailyToday, startOverdriveRun } from './input.js';
 import { goMap } from '../core/levels.js';
 
 const canvas = document.getElementById('game');
@@ -14,6 +14,10 @@ const overScreen = document.getElementById('overScreen');
 const overScore = document.getElementById('overScore');
 const overWave = document.getElementById('overWave');
 const dailyCard = document.getElementById('dailyCard');
+const runCard = document.getElementById('runCard');
+const runReached = document.getElementById('runReached');
+const runScore = document.getElementById('runScore');
+const runBest = document.getElementById('runBest');
 const dailyDate = document.getElementById('dailyDate');
 const dailyScore = document.getElementById('dailyScore');
 const dailyBest = document.getElementById('dailyBest');
@@ -36,9 +40,12 @@ function dailyBestFor(seed){ try{ return +(localStorage.getItem('retrograde_dail
 function recordDailyBest(seed, score){
   try{ const b=dailyBestFor(seed); if(score>b)localStorage.setItem('retrograde_daily_'+seed, String(score)); }catch(e){}
 }
+function overdriveBest(){ try{ return +(localStorage.getItem('retrograde_overdrive_best')||0); }catch(e){ return 0; } }
+function recordOverdriveBest(score){ try{ if(score>overdriveBest())localStorage.setItem('retrograde_overdrive_best', String(score)); }catch(e){} }
 
 let cardShownForSeed = null;
 let dailyDateStr = '';
+let runCardShown = false;
 function syncScreens(){
   startScreen.classList.toggle('hide', G.scene!=='start');
   if(G.scene==='over'){
@@ -63,6 +70,19 @@ function syncScreens(){
     cardShownForSeed = null;
     if(dailyShareBtn) dailyShareBtn.textContent='⇪ SHARE';
   }
+  if(G.scene==='runend'){
+    if(!runCardShown){
+      recordOverdriveBest(G.score);
+      runReached.textContent = 'REACHED LEVEL '+G.level+' · WAVE '+G.levelWave;
+      runScore.textContent = 'SCORE '+G.score;
+      runBest.textContent = 'BEST '+overdriveBest();
+      runCardShown = true;
+    }
+    runCard.classList.remove('hide');
+  } else {
+    runCard.classList.add('hide');
+    runCardShown = false;
+  }
 }
 
 loadProgress();                       // seed G.campaign from localStorage
@@ -78,6 +98,10 @@ if(dailyShareBtn) dailyShareBtn.onclick = async () => {
 };
 if(dailyAgainBtn) dailyAgainBtn.onclick = startDailyToday;
 if(dailyMenuBtn) dailyMenuBtn.onclick = () => goMap();
+const runAgainBtn = document.getElementById('runAgainBtn');
+const runMenuBtn = document.getElementById('runMenuBtn');
+if(runAgainBtn) runAgainBtn.onclick = startOverdriveRun;
+if(runMenuBtn) runMenuBtn.onclick = () => goMap();
 
 let lastT=performance.now(), acc=0; const STEP=1/120;
 function frame(now){

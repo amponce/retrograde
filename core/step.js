@@ -198,6 +198,7 @@ function hurtPlayer(){
 }
 function gameOver(){
   if(G.daily){ G.scene='dailyend'; emit('sfx','over'); emit('music','stop'); return; }
+  if(G.overdrive){ G.scene='runend'; emit('sfx','over'); emit('music','stop'); return; }
   G.scene='over'; emit('sfx','over'); emit('music','stop');
 }
 

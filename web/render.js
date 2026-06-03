@@ -344,7 +344,9 @@ function drawHUD(){
   ctx.fillStyle='#e9f6ff';ctx.font="700 20px 'Audiowide', sans-serif";ctx.textBaseline='middle';
   ctx.save();ctx.shadowBlur=8;ctx.shadowColor='#22e1ff';ctx.fillText(String(G.score).padStart(6,'0'),16,30);ctx.restore();
   // wave
-  ctx.fillStyle='#9fb8d0';ctx.font="600 13px Rajdhani";ctx.fillText('LVL '+G.level+'  ·  WAVE '+Math.min(G.levelWave,WAVES_PER_LEVEL)+'/'+WAVES_PER_LEVEL,16,50);
+  ctx.fillStyle='#9fb8d0';ctx.font="600 13px Rajdhani";
+  ctx.fillText(G.overdrive ? '⚡ OVERDRIVE  ·  LVL '+G.level+'  ·  WAVE '+G.levelWave
+                           : 'LVL '+G.level+'  ·  WAVE '+Math.min(G.levelWave,WAVES_PER_LEVEL)+'/'+WAVES_PER_LEVEL, 16,50);
   // beat-pulsing music indicator (equalizer bars that jump on the beat)
   if(MUSIC.on){const bx=72,by=46,beat=MUSIC.beatPulse||0;
     for(let i=0;i<3;i++){const hgt=4+ (i===1?beat*10:beat*6) + Math.sin(Date.now()*0.01+i)*1.5;

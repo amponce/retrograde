@@ -28,6 +28,12 @@ function startDaily(config){
   G.nebulae.forEach((nb,i)=>nb.c=G.theme.neb[i%G.theme.neb.length]);
   emit('music','start'); beginNextWave();
 }
+function startOverdrive(seed){
+  seedRNG(seed); resetGame();
+  G.overdrive=true; G.level=1; G.levelWave=0; G.scene='play';
+  G.theme=themeFor(1); G.nebulae.forEach((nb,i)=>nb.c=G.theme.neb[i%G.theme.neb.length]);
+  emit('music','start'); beginNextWave();
+}
 function beginNextWave(){
   G.levelWave++;
   G.wave=(G.level-1)*WAVES_PER_LEVEL+G.levelWave;
@@ -38,6 +44,11 @@ function beginNextWave(){
 }
 function winLevel(){
   if(G.daily){ G.scene='dailyend'; emit('music','stop'); emit('sfx','life'); return; }
+  if(G.overdrive){ // endless: clearing a boss escalates to the next, harder set — never "wins"
+    emit('sfx','life'); G.level++; G.levelWave=0;
+    G.theme=themeFor(G.level); G.nebulae.forEach((nb,i)=>nb.c=G.theme.neb[i%G.theme.neb.length]);
+    beginNextWave(); return;
+  }
   G.scene='victory'; emit('music','stop');
   const reward=500+G.level*250; G.campaign.coins+=reward;
   const newUnlock = Math.max(G.campaign.unlocked, Math.min(NUM_LEVELS, G.level+1));
@@ -60,4 +71,4 @@ function startWave(n){
   for(let c=0;c<carriers;c++){ const idx=Math.floor((c+1)*count/(carriers+1)); if(G.toSpawn[idx])G.toSpawn[idx].tier='carrier'; }
   G.spawnTimer=0;
 }
-export { levelNodes, goMap, openLevelSelect, startLevel, startDaily, beginNextWave, winLevel, startWave };
+export { levelNodes, goMap, openLevelSelect, startLevel, startDaily, startOverdrive, beginNextWave, winLevel, startWave };
