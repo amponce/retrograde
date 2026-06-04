@@ -35,6 +35,13 @@ function startOverdrive(seed){
   G.theme=themeFor(1); G.nebulae.forEach((nb,i)=>nb.c=G.theme.neb[i%G.theme.neb.length]);
   emit('music','start'); beginNextWave();
 }
+function startRogue(seed){
+  seedRNG(seed); resetGame();
+  G.rogue=true; G.level=1; G.scene='play';
+  G.theme=themeFor(1); G.nebulae.forEach((nb,i)=>nb.c=G.theme.neb[i%G.theme.neb.length]);
+  G.spawnTimer=0.5;              // first swarmer arrives shortly; no waves — continuous horde
+  emit('music','start');
+}
 function beginNextWave(){
   G.levelWave++;
   G.wave=(G.level-1)*WAVES_PER_LEVEL+G.levelWave;
@@ -64,7 +71,8 @@ function offerDraft(){ G.draft={options:rollDraft(3)}; G.scene='draft'; }
 function chooseUpgrade(idx){
   if(!G.draft)return;
   const opt=G.draft.options[idx]; if(opt)applyUpgrade(opt.id);
-  G.draft=null; G.scene='play'; beginNextWave();
+  G.draft=null; G.scene='play';
+  if(!G.rogue) beginNextWave();   // ROGUE just resumes the horde; OVERDRIVE/campaign continue the wave flow
 }
 function startWave(n){
   G.waveActive=true; G.toSpawn=[]; emit('sfx','wave');
@@ -91,4 +99,4 @@ function startWave(n){
   for(let c=0;c<carriers;c++){ const idx=Math.floor((c+1)*count/(carriers+1)); if(G.toSpawn[idx])G.toSpawn[idx].type='carrier'; }
   G.spawnTimer=0;
 }
-export { levelNodes, goMap, openLevelSelect, startLevel, startDaily, startOverdrive, beginNextWave, winLevel, startWave, offerDraft, chooseUpgrade };
+export { levelNodes, goMap, openLevelSelect, startLevel, startDaily, startOverdrive, startRogue, beginNextWave, winLevel, startWave, offerDraft, chooseUpgrade };

@@ -84,7 +84,7 @@ function musicStop(){
     MUSIC.master.gain.linearRampToValueAtTime(0.0001,actx.currentTime+0.4);}catch(e){}
 }
 function musicSetIntensity(t){
-  MUSIC.intensity=Math.max(1,Math.min(G.overdrive?40:5,t)); // OVERDRIVE uncaps intensity (campaign stays <=5)
+  MUSIC.intensity=Math.max(1,Math.min((G.overdrive||G.rogue)?40:5,t)); // OVERDRIVE/ROGUE uncap intensity (campaign stays <=5)
   MUSIC.bpm = Math.min(180, 108 + (MUSIC.intensity-1)*8); // 108->140 campaign; up to 180 deep in OVERDRIVE
   if(MUSIC.filter)try{MUSIC.filter.frequency.setTargetAtTime(Math.min(8000, 900 + MUSIC.intensity*520), actx.currentTime, 0.5);}catch(e){}
 }

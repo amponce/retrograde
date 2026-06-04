@@ -3,7 +3,7 @@ import { emit } from './events.js';
 import { rnd } from './rng.js';
 import { spawnEnemy, spawnBoss } from './entities.js';
 import { tryFire, dropPup, pupKind, applyPup } from './weapons.js';
-import { startWave, beginNextWave, winLevel } from './levels.js';
+import { startWave, beginNextWave, winLevel, offerDraft } from './levels.js';
 import { WAVES_PER_LEVEL, LIFE_EVERY, PUP_CYCLE, SHIELD_REGEN_DELAY, SHIELD_REGEN_TIME } from './config.js';
 import { grooveKill, grooveHit, grooveTick, grooveMult } from './groove.js';
 
@@ -18,8 +18,33 @@ function rectHit(a,b){return Math.abs(a.x-b.x)<(a.w/2+b.w/2)&&Math.abs(a.y-b.y)<
 //   { left, right, up, down, fire, mouseActive, mx, my, grab, tx, ty, musicOn }
 // The web input adapter folds touch auto-fire into `fire`, and reports the audio
 // engine's running state as `musicOn` (used only for the music-off firing fallback).
+// ---------------- ROGUE (Vampire-Survivors-style) helpers ----------------
+function nearestEnemy(){ let best=null,bd=1e18; for(const e of G.enemies){const dx=e.x-G.p.x,dy=e.y-G.p.y,d=dx*dx+dy*dy; if(d<bd){bd=d;best=e;}} return best; }
+function autoFireVS(){ // auto-aim a stream at the nearest swarmer; respects run upgrades
+  let cd=0.15; if(G.p.rapid>0)cd*=0.6; cd*=G.run.fireRate; G.p.fireCd=cd;
+  const tgt=nearestEnemy();
+  const ang=tgt?Math.atan2(tgt.y-G.p.y,tgt.x-G.p.x):-Math.PI/2;
+  const spd=720, dmg=(1+G.p.power*0.6)*G.run.dmg, shots=1+G.run.multishot;
+  for(let i=0;i<shots;i++){ const a=ang+(i-(shots-1)/2)*0.16;
+    G.bullets.push({x:G.p.x,y:G.p.y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,color:'#39ffd0',r:5,len:11,dmg,pierce:G.run.pierce,bomb:false,life:2.2,hits:0}); }
+  emit('sfx','shoot');
+}
+function rogueSpawn(dt){
+  G.spawnTimer-=dt;
+  if(G.spawnTimer<=0){ G.spawnTimer=Math.max(0.12, 0.8 - G.runT*0.010); spawnRogueEnemy(); } // rate climbs with run time
+}
+function spawnRogueEnemy(){
+  const edge=Math.floor(rnd()*4); let x,y;
+  if(edge===0){x=rnd()*G.W;y=-24;} else if(edge===1){x=rnd()*G.W;y=G.H+24;}
+  else if(edge===2){x=-24;y=rnd()*G.H;} else {x=G.W+24;y=rnd()*G.H;}
+  const tier=Math.floor(G.runT/15);                    // swarmers get stronger every ~15s
+  const hp=2+tier*2;
+  G.enemies.push({x,y,w:26,h:24,baseX:x,t:rnd()*6,hp,maxhp:hp,carrier:false,type:'grunt',
+    fireT:99,vy:50+rnd()*30+tier*5,amp:0,sp:1,flash:0,homing:true});
+}
 export function advance(input, dt){
   G.onBeat = !!input.onBeat;
+  if(G.rogue){ G.runT+=dt; G.musicIntensity=1+Math.floor(G.runT/12); } // ROGUE clock drives horde, strength, + music crank
   // starfield + grid scroll
   for(const s of G.stars){s.y+=(40+s.z*120)*dt; if(s.y>G.H){s.y=-4;s.x=rnd()*G.W;} s.tw+=dt*3;}
   G.grid.off=(G.grid.off+dt*120)%60;
@@ -50,7 +75,7 @@ export function advance(input, dt){
 
   // firing (auto when held)
   G.p.fireCd-=dt;
-  if((input.fire||input.mouseActive)&&G.p.fireCd<=0)tryFire(); // mouse control auto-fires
+  if(G.p.fireCd<=0){ if(G.rogue)autoFireVS(); else if(input.fire||input.mouseActive)tryFire(); } // ROGUE always auto-fires at nearest
   if(G.p.rapid>0)G.p.rapid-=dt;
   if(G.p.invuln>0)G.p.invuln-=dt;
   if(G.p.hitFlash>0)G.p.hitFlash-=dt;
@@ -69,7 +94,9 @@ export function advance(input, dt){
   G.bullets=G.bullets.filter(b=>b.life>0 && b.y>-40 && b.y<G.H+40 && b.x>-40 && b.x<G.W+40);
 
   // level / wave flow
-  if(G.phase==='intermission'){
+  if(G.rogue){
+    rogueSpawn(dt);   // ROGUE: continuous edge-spawned horde, no waves/boss
+  } else if(G.phase==='intermission'){
     G.interT-=dt;
     if(G.interT<=0){
       G.phase='fighting';
@@ -91,6 +118,9 @@ export function advance(input, dt){
   // enemies
   for(const e of G.enemies){
     e.t+=dt; if(e.flash>0)e.flash-=dt;
+    if(e.homing){ // ROGUE swarmer: home straight toward the player (melee horde)
+      const a=Math.atan2(G.p.y-e.y,G.p.x-e.x); e.x+=Math.cos(a)*e.vy*dt; e.y+=Math.sin(a)*e.vy*dt;
+    } else {
     if(e.pat==='dive'){e.y+=e.vy*dt; e.x=e.baseX+Math.sin(e.t*e.sp)*e.amp*0.3;}
     else if(e.pat==='sine'){e.y+=e.vy*0.8*dt; e.x=e.baseX+Math.sin(e.t*e.sp*1.4)*e.amp;}
     else if(e.pat==='swoop'){e.y+=e.vy*dt; e.x=e.baseX+Math.sin(e.t*e.sp)*e.amp*1.4;}
@@ -102,9 +132,10 @@ export function advance(input, dt){
     if(!input.musicOn && e.charged && e.y>0 && e.y<G.H*0.7){e.charged=false;
       const a=Math.atan2(G.p.y-e.y,G.p.x-e.x);
       G.ebullets.push({x:e.x,y:e.y+e.h/2,vx:Math.cos(a)*200,vy:Math.sin(a)*200,r:5,color:'#ff5a2a',life:5});}
+    }
   }
-  // off bottom
-  for(let i=G.enemies.length-1;i>=0;i--){if(G.enemies[i].y>G.H+50)G.enemies.splice(i,1);}
+  // off bottom (not in ROGUE — swarmers home toward you and never leave)
+  if(!G.rogue) for(let i=G.enemies.length-1;i>=0;i--){if(G.enemies[i].y>G.H+50)G.enemies.splice(i,1);}
 
   // boss
   if(G.boss)updateBoss(dt);
@@ -115,7 +146,7 @@ export function advance(input, dt){
 
   // bullet vs enemy
   for(const b of G.bullets){
-    if(b.vy>0)continue; // player bullets go up
+    if(!G.rogue && b.vy>0)continue; // normal modes: player bullets go up; ROGUE fires in all directions
     for(const e of G.enemies){
       if(rectHit({x:b.x,y:b.y,w:b.r*2,h:b.len},e)){
         e.hp-=b.dmg; e.flash=0.1; b.hits++; emit('sfx','hit');
@@ -185,6 +216,7 @@ function killEnemy(e,silent){
     for(let k=-1;k<=1;k+=2)
       G.enemies.push({x:e.x+k*14,y:e.y,w:20,h:18,pat:'dive',t:rnd()*6,baseX:e.x+k*14,hp:1,maxhp:1,carrier:false,type:'grunt',fireT:2.5,vy:160,amp:30,sp:2.2,flash:0});
   }
+  if(G.rogue){ G.xp++; if(G.xp>=G.xpNext){ G.plevel++; G.xp=0; G.xpNext=Math.ceil(G.xpNext*1.4); offerDraft(); } } // kill->XP->level-up draft
 }
 function bombSplash(x,y){boom(x,y,'#39ff14',16,300);addShake(5);emit('sfx','boom');
   for(const e of G.enemies){if(Math.abs(e.x-x)<70&&Math.abs(e.y-y)<70){e.hp-=3;e.flash=0.1;if(e.hp<=0)killEnemy(e);}}
@@ -202,7 +234,7 @@ function hurtPlayer(){
 }
 function gameOver(){
   if(G.daily){ G.scene='dailyend'; emit('sfx','over'); emit('music','stop'); return; }
-  if(G.overdrive){ G.scene='runend'; emit('sfx','over'); emit('music','stop'); return; }
+  if(G.overdrive || G.rogue){ G.scene='runend'; emit('sfx','over'); emit('music','stop'); return; }
   G.scene='over'; emit('sfx','over'); emit('music','stop');
 }
 

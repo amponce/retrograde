@@ -10,6 +10,7 @@ export const G = {
   daily: false,             // true while a Daily Beat run is active
   dailySeed: 0,             // the seed of the active daily run
   overdrive: false,         // true while an endless OVERDRIVE run is active
+  rogue: false,             // true while a ROGUE (Vampire-Survivors-style) run is active
   onBeat: false,            // set each tick from input.onBeat (is this sim step inside a beat window?)
   groove: { mult: 1, chain: 0, t: 0 },
   run: { fireRate:1, dmg:1, multishot:0, pierce:false, bulletSpd:1, regen:1, picks:[] }, // OVERDRIVE compounding upgrades
@@ -36,6 +37,7 @@ export function resetGame(){
   G.score=0; G.wave=0; G.shake=0; G.freeze=0; G.pupCycleIdx=0;
   G.groove={mult:1, chain:0, t:0}; G.onBeat=false;
   G.daily=false; G.dailySeed=0; G.overdrive=false;
+  G.rogue=false; G.runT=0; G.xp=0; G.plevel=1; G.xpNext=6; // ROGUE: run clock + XP/level
   G.run={fireRate:1, dmg:1, multishot:0, pierce:false, bulletSpd:1, regen:1, picks:[]}; G.draft=null;
   G.spawnTimer=0; G.waveActive=false; G.toSpawn=[]; G.betweenWaves=1.2;
 }

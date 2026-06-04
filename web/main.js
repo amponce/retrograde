@@ -4,7 +4,7 @@ import { drainEvents } from '../core/events.js';
 import { WAVES_PER_LEVEL } from '../core/config.js';
 import { render } from './render.js';
 import { ensureAudio, applyAudioEvents, loadProgress, musicTick } from './audio.js';
-import { attachInput, buildInput, wireScreenButtons, startDailyToday, startOverdriveRun } from './input.js';
+import { attachInput, buildInput, wireScreenButtons, startDailyToday, startOverdriveRun, startRogueRun } from './input.js';
 import { goMap, chooseUpgrade } from '../core/levels.js';
 
 const canvas = document.getElementById('game');
@@ -15,6 +15,7 @@ const overScore = document.getElementById('overScore');
 const overWave = document.getElementById('overWave');
 const dailyCard = document.getElementById('dailyCard');
 const runCard = document.getElementById('runCard');
+const runTitle = document.getElementById('runTitle');
 const runReached = document.getElementById('runReached');
 const runScore = document.getElementById('runScore');
 const runBest = document.getElementById('runBest');
@@ -44,6 +45,8 @@ function recordDailyBest(seed, score){
 }
 function overdriveBest(){ try{ return +(localStorage.getItem('retrograde_overdrive_best')||0); }catch(e){ return 0; } }
 function recordOverdriveBest(score){ try{ if(score>overdriveBest())localStorage.setItem('retrograde_overdrive_best', String(score)); }catch(e){} }
+function rogueBest(){ try{ return +(localStorage.getItem('retrograde_rogue_best')||0); }catch(e){ return 0; } }
+function recordRogueBest(score){ try{ if(score>rogueBest())localStorage.setItem('retrograde_rogue_best', String(score)); }catch(e){} }
 
 let cardShownForSeed = null;
 let dailyDateStr = '';
@@ -75,10 +78,19 @@ function syncScreens(){
   }
   if(G.scene==='runend'){
     if(!runCardShown){
-      recordOverdriveBest(G.score);
-      runReached.textContent = 'REACHED LEVEL '+G.level+' · WAVE '+G.levelWave;
-      runScore.textContent = 'SCORE '+G.score;
-      runBest.textContent = 'BEST '+overdriveBest();
+      if(G.rogue){
+        recordRogueBest(G.score);
+        runTitle.textContent = 'ROGUE';
+        runReached.textContent = 'SURVIVED '+Math.floor(G.runT)+'s · LVL '+G.plevel;
+        runScore.textContent = 'SCORE '+G.score;
+        runBest.textContent = 'BEST '+rogueBest();
+      } else {
+        recordOverdriveBest(G.score);
+        runTitle.textContent = 'OVERDRIVE';
+        runReached.textContent = 'REACHED LEVEL '+G.level+' · WAVE '+G.levelWave;
+        runScore.textContent = 'SCORE '+G.score;
+        runBest.textContent = 'BEST '+overdriveBest();
+      }
       runCardShown = true;
     }
     runCard.classList.remove('hide');
@@ -116,7 +128,7 @@ if(dailyAgainBtn) dailyAgainBtn.onclick = startDailyToday;
 if(dailyMenuBtn) dailyMenuBtn.onclick = () => goMap();
 const runAgainBtn = document.getElementById('runAgainBtn');
 const runMenuBtn = document.getElementById('runMenuBtn');
-if(runAgainBtn) runAgainBtn.onclick = startOverdriveRun;
+if(runAgainBtn) runAgainBtn.onclick = () => { (G.rogue ? startRogueRun : startOverdriveRun)(); };
 if(runMenuBtn) runMenuBtn.onclick = () => goMap();
 draftEls.forEach((el,i)=>{ if(el) el.onclick = () => chooseUpgrade(i); });
 
