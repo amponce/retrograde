@@ -83,12 +83,13 @@ export function advance(input, dt){
   G.shootingStars=G.shootingStars.filter(ss=>ss.age<ss.life);
 
   // player movement
+  const ease=G.rogue?13:18;   // ROGUE follows the cursor a touch slower (calmer roam)
   if(input.grab){ // touch: ease toward the relative target set by the drag delta
-    G.p.x+=(input.tx-G.p.x)*Math.min(1,dt*18); G.p.y+=(input.ty-G.p.y)*Math.min(1,dt*18);
+    G.p.x+=(input.tx-G.p.x)*Math.min(1,dt*ease); G.p.y+=(input.ty-G.p.y)*Math.min(1,dt*ease);
     G.p.thrust=1;
   } else if(input.mouseActive){ // desktop mouse: ship eases toward the cursor (world coords in ROGUE)
     const tx=G.rogue?G.camX+input.mx:input.mx, ty=G.rogue?G.camY+input.my:input.my;
-    G.p.x+=(tx-G.p.x)*Math.min(1,dt*18); G.p.y+=(ty-G.p.y)*Math.min(1,dt*18);
+    G.p.x+=(tx-G.p.x)*Math.min(1,dt*ease); G.p.y+=(ty-G.p.y)*Math.min(1,dt*ease);
     G.p.thrust=1;
   } else {
     let mx=(input.right?1:0)-(input.left?1:0), my=(input.down?1:0)-(input.up?1:0);
