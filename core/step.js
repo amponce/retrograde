@@ -181,6 +181,10 @@ function killEnemy(e,silent){
   if(ob||e.carrier)G.freeze=Math.max(G.freeze, e.carrier?0.06:0.035); // beat-locked hitstop on significant / on-beat kills
   if(!silent)emit('sfx','boom'); addShake(e.carrier?4:2);
   if(e.carrier)dropPup(e.x,e.y);
+  if(e.type==='splitter'){ // breaks into two weak fast fragments
+    for(let k=-1;k<=1;k+=2)
+      G.enemies.push({x:e.x+k*14,y:e.y,w:20,h:18,pat:'dive',t:rnd()*6,baseX:e.x+k*14,hp:1,maxhp:1,carrier:false,type:'grunt',fireT:2.5,vy:160,amp:30,sp:2.2,flash:0});
+  }
 }
 function bombSplash(x,y){boom(x,y,'#39ff14',16,300);addShake(5);emit('sfx','boom');
   for(const e of G.enemies){if(Math.abs(e.x-x)<70&&Math.abs(e.y-y)<70){e.hp-=3;e.flash=0.1;if(e.hp<=0)killEnemy(e);}}

@@ -251,8 +251,9 @@ function drawEnemy(e){
     // twin engine glow
     ctx.shadowBlur=8;ctx.shadowColor='#22e1ff';ctx.fillStyle='rgba(34,225,255,.7)';
     ctx.beginPath();ctx.ellipse(x-w*0.4,y-h-1,2.2,4,0,0,7);ctx.ellipse(x+w*0.4,y-h-1,2.2,4,0,0,7);ctx.fill();
-    // hull — swept-wing fighter, nose down
-    ctx.shadowBlur=10;ctx.shadowColor='#ff2d95';ctx.fillStyle=fl?'#fff':'#ff3d9a';
+    // hull — swept-wing fighter, nose down (tinted per archetype; size varies via e.w/e.h)
+    const hull = e.type==='darter'?'#ff8a3d': e.type==='tank'?'#b06bff': e.type==='weaver'?'#ff5ad0': e.type==='splitter'?'#ff6b6b':'#ff3d9a';
+    ctx.shadowBlur=10;ctx.shadowColor=hull;ctx.fillStyle=fl?'#fff':hull;
     ctx.beginPath();
     ctx.moveTo(x,y+h);                 // nose
     ctx.lineTo(x+w*0.35,y+h*0.1);
