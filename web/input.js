@@ -1,6 +1,6 @@
 import { G } from '../core/state.js';
 import { tryFire } from '../core/weapons.js';
-import { goMap, openLevelSelect, startLevel, startDaily, startOverdrive } from '../core/levels.js';
+import { goMap, openLevelSelect, startLevel, startDaily, startOverdrive, startRogue } from '../core/levels.js';
 import { seedRNG } from '../core/rng.js';
 import { dailySeed, dailyConfig } from '../core/daily.js';
 import { ensureAudio, pauseMusic, resumeMusic, MUSIC, onBeatNow } from './audio.js';
@@ -111,6 +111,7 @@ export function attachInput(canvas, sceneGetter){
 
 export function startDailyToday(){ ensureAudio(); startDaily(dailyConfig(dailySeed(new Date()))); }
 export function startOverdriveRun(){ ensureAudio(); startOverdrive((Math.random()*0x100000000)>>>0); } // fresh random seed each run
+export function startRogueRun(){ ensureAudio(); startRogue((Math.random()*0x100000000)>>>0); }
 
 // LAUNCH / RETRY DOM buttons. The over/start overlays themselves are shown/hidden by
 // main.js based on G.scene; these handlers just unlock audio and route to the map.
@@ -123,4 +124,6 @@ export function wireScreenButtons(){
   if(dailyBtn){ dailyBtn.onclick=startDailyToday; }
   const overdriveBtn=document.getElementById('overdriveBtn');
   if(overdriveBtn){ overdriveBtn.onclick=startOverdriveRun; }
+  const rogueBtn=document.getElementById('rogueBtn');
+  if(rogueBtn){ rogueBtn.onclick=startRogueRun; }
 }
