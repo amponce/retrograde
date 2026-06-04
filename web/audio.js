@@ -84,9 +84,9 @@ function musicStop(){
     MUSIC.master.gain.linearRampToValueAtTime(0.0001,actx.currentTime+0.4);}catch(e){}
 }
 function musicSetIntensity(t){
-  MUSIC.intensity=Math.max(1,Math.min(5,t));
-  MUSIC.bpm = 108 + (MUSIC.intensity-1)*8; // 108 -> 140 bpm
-  if(MUSIC.filter)try{MUSIC.filter.frequency.setTargetAtTime(900 + MUSIC.intensity*520, actx.currentTime, 0.5);}catch(e){}
+  MUSIC.intensity=Math.max(1,Math.min(G.overdrive?40:5,t)); // OVERDRIVE uncaps intensity (campaign stays <=5)
+  MUSIC.bpm = Math.min(180, 108 + (MUSIC.intensity-1)*8); // 108->140 campaign; up to 180 deep in OVERDRIVE
+  if(MUSIC.filter)try{MUSIC.filter.frequency.setTargetAtTime(Math.min(8000, 900 + MUSIC.intensity*520), actx.currentTime, 0.5);}catch(e){}
 }
 function mVoice(freq,t,dur,type,vol,target,slideTo){
   try{const o=actx.createOscillator(),g=actx.createGain();
@@ -146,12 +146,12 @@ function onMusicBeat(ev){
   beatVisual=1; beatNum=(beatNum+1)%4;
   const onSnare=(ev.beatInBar===1||ev.beatInBar===3);
   // charged enemies fire on the beat; snare beats = full volley, off-beats = lighter
-  let fired=0, cap=onSnare?99:2;
+  let fired=0, cap=onSnare?99:(G.overdrive?2+Math.floor(G.wave/16):2); // OVERDRIVE: more bullets/beat as you climb
   for(const e of G.enemies){
     if(e.charged && e.y>0 && e.y<G.H*0.72 && fired<cap){
       e.charged=false; fired++;
       const a=Math.atan2(G.p.y-e.y,G.p.x-e.x);
-      const spd=190+MUSIC.intensity*16;
+      const spd=190+Math.min(MUSIC.intensity,6)*16; // velocity stays readable even as intensity climbs
       G.ebullets.push({x:e.x,y:e.y+e.h/2,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,r:5,color:'#ff5a2a',life:5});
       if(e.carrier && MUSIC.intensity>=3){ // carriers add a small fan on the beat
         G.ebullets.push({x:e.x,y:e.y+e.h/2,vx:Math.cos(a-0.25)*spd,vy:Math.sin(a-0.25)*spd,r:5,color:'#ff5a2a',life:5});
