@@ -33,17 +33,26 @@ function autoFireVS(){ // auto-aim a stream at the nearest swarmer; respects run
 // ROGUE waves: telegraphed, themed batches with short lulls — reads as PLANNED (not random soup)
 // and caps on-screen density, so a leveling build can actually clear and feel its progress.
 const ROGUE_WAVES = [
-  {label:'GRUNT RUSH',   mix:['grunt']},
-  {label:'DARTER SWARM', mix:['darter']},
-  {label:'PINCER',       mix:['grunt','darter']},
-  {label:'WEAVE STORM',  mix:['weaver','grunt']},
-  {label:'TANK SQUAD',   mix:['tank','grunt']},
-  {label:'SPLIT CELLS',  mix:['splitter','darter']},
-  {label:'ONSLAUGHT',    mix:['grunt','darter','weaver','tank']},
+  {label:'GRUNT RUSH',    mix:['grunt']},
+  {label:'DARTER SWARM',  mix:['darter','darter','grunt']},
+  {label:'ORBIT NEST',    mix:['orbiter','grunt']},
+  {label:'WEAVE STORM',   mix:['weaver','weaver','grunt']},
+  {label:'SPITTER LINE',  mix:['spitter','grunt','grunt']},
+  {label:'CHARGERS',      mix:['charger','grunt']},
+  {label:'TANK SQUAD',    mix:['tank','grunt','grunt']},
+  {label:'SPLIT CELLS',   mix:['splitter','darter']},
+  {label:'MIXED ASSAULT', mix:['grunt','darter','weaver','orbiter','spitter']},
+  {label:'ONSLAUGHT',     mix:['darter','charger','weaver','tank','spitter']},
 ];
 function startRogueWave(n){
-  const comp=ROGUE_WAVES[(n-1)%ROGUE_WAVES.length];
   const tier=Math.floor((n-1)/2);                 // strength steps up every 2 waves
+  if(n%5===0){ // periodic ELITE spike — a mini-boss (radial-burst, beefy) + a small escort, to break the rhythm
+    const elites=1+Math.floor(n/12);
+    for(let i=0;i<elites;i++) G.rogueQueue.push({type:'elite', tier, delay:i*0.6});
+    for(let i=0;i<4;i++)      G.rogueQueue.push({type:'grunt', tier, delay:0.4+i*0.35});
+    G.waveBanner='WAVE '+n+' · ⚠ ELITE'; G.waveBannerT=2.4; emit('sfx','bossWarn'); return;
+  }
+  const comp=ROGUE_WAVES[(n-1)%ROGUE_WAVES.length];
   const count=4+Math.floor(n*1.1);                // density grows with the run
   for(let i=0;i<count;i++)
     G.rogueQueue.push({type:comp.mix[i%comp.mix.length], tier, delay:i*(2.6/count)+rnd()*0.18}); // pour in over ~2.6s
@@ -67,18 +76,22 @@ function spawnRogueEnemy(type,tier){
   else if(edge===2){x=G.camX-m; y=G.camY+rnd()*G.H;}
   else {x=G.camX+G.W+m; y=G.camY+rnd()*G.H;}
   x=Math.max(-m,Math.min(G.worldW+m,x)); y=Math.max(-m,Math.min(G.worldH+m,y));
-  let w=26,h=24,hp=2+tier*2,vy=42+rnd()*16+tier*3;
-  if(type==='darter'){ w=22;h=22;hp=2+tier;        vy=92+rnd()*28+tier*5; }    // fast, fragile
-  else if(type==='weaver'){ w=28;h=26;hp=3+tier*2; vy=64+tier*3; }             // medium, erratic
-  else if(type==='tank'){ w=42;h=38;hp=11+tier*5;  vy=26+tier*2; }             // slow, beefy
-  else if(type==='splitter'){ w=30;h=28;hp=4+tier*2; vy=50+tier*3; }           // splits on death
-  G.enemies.push({x,y,w,h,baseX:x,t:rnd()*6,hp,maxhp:hp,carrier:false,type,fireT:99,vy,amp:0,sp:1,flash:0,homing:true});
+  let w=26,h=24,hp=2+tier*2,vy=42+rnd()*16+tier*3,behav='beeline';
+  if(type==='darter'){ w=22;h=22;hp=2+tier;        vy=92+rnd()*28+tier*5; }                   // fast, fragile, straight
+  else if(type==='weaver'){ w=28;h=26;hp=3+tier*2; vy=58+tier*3;  behav='weave'; }             // serpentines as it closes
+  else if(type==='tank'){ w=42;h=38;hp=11+tier*5;  vy=26+tier*2; }                             // slow, beefy
+  else if(type==='splitter'){ w=30;h=28;hp=4+tier*2; vy=50+tier*3; }                           // splits on death
+  else if(type==='orbiter'){ w=26;h=24;hp=4+tier*2; vy=120+tier*4; behav='orbit'; }            // circles you at range
+  else if(type==='charger'){ w=30;h=28;hp=5+tier*2; vy=46+tier*3;  behav='charge'; }           // creeps, then lunges
+  else if(type==='spitter'){ w=26;h=26;hp=3+tier;   vy=70+tier*2;  behav='spit'; }             // keeps distance, shoots
+  else if(type==='elite'){ w=54;h=48;hp=38+tier*14; vy=24+tier;    behav='elite'; }            // mini-boss: radial bursts
+  const fireT = behav==='spit'?0.9 : behav==='elite'?2.0 : 99;
+  G.enemies.push({x,y,w,h,baseX:x,t:rnd()*6,hp,maxhp:hp,carrier:false,type,fireT,vy,amp:0,sp:1,flash:0,homing:true,behav});
 }
 function updateGems(dt){ // gems drift to you within the magnet radius; collect -> XP -> level-up draft
   for(const g of G.gems){
     const dx=G.p.x-g.x, dy=G.p.y-g.y, d=Math.hypot(dx,dy)||1;
     if(d<G.magnet){ const pull=Math.min(1, dt*7 + (G.magnet-d)/G.magnet*dt*10); g.x+=dx*pull; g.y+=dy*pull; }
-    else { const inv=36*dt/d; g.x+=dx*inv; g.y+=dy*inv; }   // slow global drift so gems are never permanently stranded
     if(d<16){ g.dead=true; G.xp+=g.val*G.xpGain; G.xpFlash=0.16;   // collect: brief XP-bar flash + a green spark pop
       for(let s=0;s<5;s++){const a=rnd()*6.28,sp=50+rnd()*70; G.parts.push({x:g.x,y:g.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:0.3,age:0,color:'#9dff5a',r:1.4+rnd()*1.4});}
       if(G.xp>=G.xpNext){ G.plevel++; G.xp-=G.xpNext; G.xpNext=Math.ceil(G.xpNext*1.5); G.levelFlash=0.5; addShake(4); emit('sfx','life'); offerDraft(); break; } } // level up: fanfare + draft
@@ -183,8 +196,22 @@ export function advance(input, dt){
   // enemies
   for(const e of G.enemies){
     e.t+=dt; if(e.flash>0)e.flash-=dt;
-    if(e.homing){ // ROGUE swarmer: home straight toward the player (melee horde)
-      const a=Math.atan2(G.p.y-e.y,G.p.x-e.x); e.x+=Math.cos(a)*e.vy*dt; e.y+=Math.sin(a)*e.vy*dt;
+    if(e.homing){ // ROGUE: movement varies by archetype so the horde isn't one uniform blob
+      const dx=G.p.x-e.x, dy=G.p.y-e.y, dist=Math.hypot(dx,dy)||1, ux=dx/dist, uy=dy/dist;
+      if(e.behav==='weave'){ const wv=Math.sin(e.t*4)*e.vy*0.7; e.x+=(ux*e.vy - uy*wv)*dt; e.y+=(uy*e.vy + ux*wv)*dt; }
+      else if(e.behav==='orbit'){ const ring=160;          // close to a ring, then strafe around you
+        if(dist>ring+12){ e.x+=ux*e.vy*dt; e.y+=uy*e.vy*dt; }
+        else { e.x+=(-uy*e.vy*1.1 + ux*(dist-ring)*0.8)*dt; e.y+=(ux*e.vy*1.1 + uy*(dist-ring)*0.8)*dt; } }
+      else if(e.behav==='charge'){ e.chT=(e.chT||0)-dt;     // creep, telegraph (flash), then lunge
+        if(e.chT<=0){ e.chT=1.7+rnd()*0.8; e.lunge=0.4; e.flash=0.15; }
+        if(e.lunge>0)e.lunge-=dt; const sp=e.lunge>0?e.vy*3.4:e.vy*0.45; e.x+=ux*sp*dt; e.y+=uy*sp*dt; }
+      else if(e.behav==='spit'){ const ring=230;            // hold range and fire aimed bolts
+        if(dist>ring){ e.x+=ux*e.vy*dt; e.y+=uy*e.vy*dt; } else { e.x-=ux*e.vy*0.5*dt; e.y-=uy*e.vy*0.5*dt; }
+        e.fireT-=dt; if(e.fireT<=0){ e.fireT=1.5+rnd()*0.7; G.ebullets.push({x:e.x,y:e.y,vx:ux*260,vy:uy*260,r:5,color:'#ffa23a',life:4}); emit('sfx','laser'); } }
+      else if(e.behav==='elite'){ e.x+=ux*e.vy*dt; e.y+=uy*e.vy*dt;   // mini-boss: slow approach + radial burst
+        e.fireT-=dt; if(e.fireT<=0){ e.fireT=2.8; e.flash=0.2;
+          for(let k=0;k<10;k++){ const a=(k/10)*6.283; G.ebullets.push({x:e.x,y:e.y,vx:Math.cos(a)*175,vy:Math.sin(a)*175,r:6,color:'#d24bff',life:4}); } emit('sfx','bomb'); } }
+      else { e.x+=ux*e.vy*dt; e.y+=uy*e.vy*dt; }            // beeline: grunt / darter / tank / splitter
     } else {
     if(e.pat==='dive'){e.y+=e.vy*dt; e.x=e.baseX+Math.sin(e.t*e.sp)*e.amp*0.3;}
     else if(e.pat==='sine'){e.y+=e.vy*0.8*dt; e.x=e.baseX+Math.sin(e.t*e.sp*1.4)*e.amp;}
@@ -207,7 +234,7 @@ export function advance(input, dt){
 
   // enemy bullets
   for(const eb of G.ebullets){eb.x+=eb.vx*dt;eb.y+=eb.vy*dt;eb.life-=dt;}
-  G.ebullets=G.ebullets.filter(eb=>eb.life>0&&eb.y<G.H+30&&eb.y>-30&&eb.x>-30&&eb.x<G.W+30);
+  G.ebullets=G.ebullets.filter(eb=>eb.life>0 && (G.rogue || (eb.y<G.H+30&&eb.y>-30&&eb.x>-30&&eb.x<G.W+30))); // ROGUE ebullets are world-space; expire by life
 
   // bullet vs enemy
   for(const b of G.bullets){
@@ -281,7 +308,8 @@ function killEnemy(e,silent){
     for(let k=-1;k<=1;k+=2)
       G.enemies.push({x:e.x+k*14,y:e.y,w:20,h:18,pat:'dive',t:rnd()*6,baseX:e.x+k*14,hp:1,maxhp:1,carrier:false,type:'grunt',fireT:2.5,vy:160,amp:30,sp:2.2,flash:0});
   }
-  if(G.rogue){ G.gems.push({x:e.x,y:e.y,val:1,dead:false}); } // ROGUE: kill drops a gem to collect
+  if(G.rogue){ const ng=e.type==='elite'?9:1;   // ROGUE: kills drop gems; an elite bursts a reward pile
+    for(let i=0;i<ng;i++)G.gems.push({x:e.x+(rnd()-0.5)*34,y:e.y+(rnd()-0.5)*34,val:1,dead:false}); }
 }
 function bombSplash(x,y){boom(x,y,'#39ff14',16,300);addShake(5);emit('sfx','boom');
   for(const e of G.enemies){if(Math.abs(e.x-x)<70&&Math.abs(e.y-y)<70){e.hp-=3;e.flash=0.1;if(e.hp<=0)killEnemy(e);}}

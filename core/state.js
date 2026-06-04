@@ -37,8 +37,8 @@ export function resetGame(){
   G.score=0; G.wave=0; G.shake=0; G.freeze=0; G.pupCycleIdx=0;
   G.groove={mult:1, chain:0, t:0}; G.onBeat=false;
   G.daily=false; G.dailySeed=0; G.overdrive=false;
-  G.rogue=false; G.runT=0; G.xp=0; G.plevel=1; G.xpNext=5; // ROGUE: run clock + XP/level (low base = fast first upgrades)
-  G.gems=[]; G.weapons=[]; G.passives=[]; G.magnet=90; G.xpGain=1; // ROGUE: gems, weapon + passive loadout, generous pickup radius, XP mult
+  G.rogue=false; G.runT=0; G.xp=0; G.plevel=1; G.xpNext=8; // ROGUE: run clock + XP/level (earned, not instant)
+  G.gems=[]; G.weapons=[]; G.passives=[]; G.magnet=60; G.xpGain=1; // ROGUE: gems, weapon + passive loadout, modest pickup radius (move to collect), XP mult
   G.worldW=G.W; G.worldH=G.H; G.camX=0; G.camY=0;          // ROGUE: large arena + follow-camera (viewport-sized for other modes)
   G.waveNum=0; G.waveT=2.2; G.rogueQueue=[]; G.waveBanner=''; G.waveBannerT=0;  // ROGUE: telegraphed wave director
   G.xpFlash=0; G.levelFlash=0;                              // ROGUE: gem-collect + level-up flashes
