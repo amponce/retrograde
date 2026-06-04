@@ -2,6 +2,7 @@ import { G, resetGame } from './state.js';
 import { emit } from './events.js';
 import { themeFor, NUM_LEVELS, WAVES_PER_LEVEL, LEVEL_THEMES } from './config.js';
 import { rollDraft, applyUpgrade } from './upgrades.js';
+import { rollRogueDraft, applyRogueChoice } from './rogueweapons.js';
 import { rnd, seedRNG } from './rng.js';
 
 function levelNodes(){
@@ -40,6 +41,7 @@ function startRogue(seed){
   G.rogue=true; G.level=1; G.scene='play';
   G.theme=themeFor(1); G.nebulae.forEach((nb,i)=>nb.c=G.theme.neb[i%G.theme.neb.length]);
   G.spawnTimer=0.5;              // first swarmer arrives shortly; no waves — continuous horde
+  G.weapons=[{id:'bolt',lvl:1,fireT:0}];   // starter weapon (level-ups add more)
   emit('music','start');
 }
 function beginNextWave(){
@@ -67,10 +69,11 @@ function winLevel(){
   emit('sfx','life');
 }
 // OVERDRIVE: between waves, pause into a draft of 3 upgrades; chooseUpgrade resumes.
-function offerDraft(){ G.draft={options:rollDraft(3)}; G.scene='draft'; }
+function offerDraft(){ G.draft={options: G.rogue?rollRogueDraft():rollDraft(3)}; G.scene='draft'; }
 function chooseUpgrade(idx){
   if(!G.draft)return;
-  const opt=G.draft.options[idx]; if(opt)applyUpgrade(opt.id);
+  const opt=G.draft.options[idx];
+  if(opt){ if(G.rogue)applyRogueChoice(opt); else applyUpgrade(opt.id); }
   G.draft=null; G.scene='play';
   if(!G.rogue) beginNextWave();   // ROGUE just resumes the horde; OVERDRIVE/campaign continue the wave flow
 }
