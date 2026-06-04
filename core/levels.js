@@ -68,7 +68,11 @@ function chooseUpgrade(idx){
 }
 function startWave(n){
   G.waveActive=true; G.toSpawn=[]; emit('sfx','wave');
-  const count = Math.min(22, 8 + Math.floor(n*0.85));   // lower high-level cap so L3+ isn't a wall
+  // OVERDRIVE uncaps the curve so it NEVER plateaus (HP + density climb forever vs the
+  // compounding build); campaign keeps its tuned, gentler curve.
+  const od=G.overdrive;
+  const count = od ? Math.min(34, 8 + Math.floor(n*0.55)) : Math.min(22, 8 + Math.floor(n*0.85));
+  const hpBase = od ? 1 + Math.floor(n/5) : 1 + Math.floor(n/7);   // OVERDRIVE: HP climbs uncapped (DPS pressure)
   const patterns=['dive','sine','swoop','hover'];
   // archetypes unlock as the level's waves progress — wave 1 basics, each later wave adds a type
   const roster=['grunt'];
@@ -80,10 +84,10 @@ function startWave(n){
     const pat=patterns[(n+i)%patterns.length];
     let type='grunt';
     if(roster.length>1 && rnd()<0.42) type=roster[1+Math.floor(rnd()*(roster.length-1))]; // ~40% archetypes, rest grunts
-    G.toSpawn.push({pat, delay: i*0.44 + rnd()*0.18, hp: 1+Math.floor(n/7), type});
+    G.toSpawn.push({pat, delay: i*0.44 + rnd()*0.18, hp: hpBase, type});
   }
-  // a few carrier (capsule-dropping) enemies, spread through the wave (capped so late levels stay fair)
-  const carriers=Math.min(3, 1+Math.floor(n/6));
+  // carrier (capsule-dropping) enemies, spread through the wave
+  const carriers = od ? Math.min(5, 1 + Math.floor(n/7)) : Math.min(3, 1 + Math.floor(n/6));
   for(let c=0;c<carriers;c++){ const idx=Math.floor((c+1)*count/(carriers+1)); if(G.toSpawn[idx])G.toSpawn[idx].type='carrier'; }
   G.spawnTimer=0;
 }
