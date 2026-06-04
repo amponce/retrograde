@@ -4,6 +4,7 @@ import { rnd } from './rng.js';
 import { spawnEnemy, spawnBoss } from './entities.js';
 import { tryFire, dropPup, pupKind, applyPup } from './weapons.js';
 import { startWave, beginNextWave, winLevel, offerDraft } from './levels.js';
+import { tickRogueWeapons } from './rogueweapons.js';
 import { WAVES_PER_LEVEL, LIFE_EVERY, PUP_CYCLE, SHIELD_REGEN_DELAY, SHIELD_REGEN_TIME } from './config.js';
 import { grooveKill, grooveHit, grooveTick, grooveMult } from './groove.js';
 
@@ -42,6 +43,15 @@ function spawnRogueEnemy(){
   G.enemies.push({x,y,w:26,h:24,baseX:x,t:rnd()*6,hp,maxhp:hp,carrier:false,type:'grunt',
     fireT:99,vy:50+rnd()*30+tier*5,amp:0,sp:1,flash:0,homing:true});
 }
+function updateGems(dt){ // gems drift to you within the magnet radius; collect -> XP -> level-up draft
+  for(const g of G.gems){
+    const dx=G.p.x-g.x, dy=G.p.y-g.y, d=Math.hypot(dx,dy)||1;
+    if(d<G.magnet){ const pull=Math.min(1, dt*7 + (G.magnet-d)/G.magnet*dt*10); g.x+=dx*pull; g.y+=dy*pull; }
+    if(d<16){ g.dead=true; G.xp+=g.val;
+      if(G.xp>=G.xpNext){ G.plevel++; G.xp-=G.xpNext; G.xpNext=Math.ceil(G.xpNext*1.32); offerDraft(); break; } }
+  }
+  G.gems=G.gems.filter(g=>!g.dead);
+}
 export function advance(input, dt){
   G.onBeat = !!input.onBeat;
   if(G.rogue){ G.runT+=dt; G.musicIntensity=1+Math.floor(G.runT/12); } // ROGUE clock drives horde, strength, + music crank
@@ -75,7 +85,8 @@ export function advance(input, dt){
 
   // firing (auto when held)
   G.p.fireCd-=dt;
-  if(G.p.fireCd<=0){ if(G.rogue)autoFireVS(); else if(input.fire||input.mouseActive)tryFire(); } // ROGUE always auto-fires at nearest
+  if(G.rogue){ tickRogueWeapons(dt); } // ROGUE: whole weapon loadout auto-fires on its own timers
+  else if((input.fire||input.mouseActive)&&G.p.fireCd<=0){ tryFire(); }
   if(G.p.rapid>0)G.p.rapid-=dt;
   if(G.p.invuln>0)G.p.invuln-=dt;
   if(G.p.hitFlash>0)G.p.hitFlash-=dt;
@@ -89,13 +100,17 @@ export function advance(input, dt){
   }
 
   // bullets
-  for(const b of G.bullets){b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;
+  for(const b of G.bullets){
+    if(b.seek){ const t=nearestEnemy(); if(t){ const want=Math.atan2(t.y-b.y,t.x-b.x), cur=Math.atan2(b.vy,b.vx);
+      let dd=want-cur; while(dd>Math.PI)dd-=6.283; while(dd<-Math.PI)dd+=6.283;
+      const na=cur+Math.max(-dt*6,Math.min(dt*6,dd)), sp=Math.hypot(b.vx,b.vy); b.vx=Math.cos(na)*sp; b.vy=Math.sin(na)*sp; } }
+    b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;
     if(b.bomb)b.vy+=240*dt;}
   G.bullets=G.bullets.filter(b=>b.life>0 && b.y>-40 && b.y<G.H+40 && b.x>-40 && b.x<G.W+40);
 
   // level / wave flow
   if(G.rogue){
-    rogueSpawn(dt);   // ROGUE: continuous edge-spawned horde, no waves/boss
+    rogueSpawn(dt); updateGems(dt);   // ROGUE: continuous edge-spawned horde + gem collection, no waves/boss
   } else if(G.phase==='intermission'){
     G.interT-=dt;
     if(G.interT<=0){
@@ -216,7 +231,7 @@ function killEnemy(e,silent){
     for(let k=-1;k<=1;k+=2)
       G.enemies.push({x:e.x+k*14,y:e.y,w:20,h:18,pat:'dive',t:rnd()*6,baseX:e.x+k*14,hp:1,maxhp:1,carrier:false,type:'grunt',fireT:2.5,vy:160,amp:30,sp:2.2,flash:0});
   }
-  if(G.rogue){ G.xp++; if(G.xp>=G.xpNext){ G.plevel++; G.xp=0; G.xpNext=Math.ceil(G.xpNext*1.4); offerDraft(); } } // kill->XP->level-up draft
+  if(G.rogue){ G.gems.push({x:e.x,y:e.y,val:1,dead:false}); } // ROGUE: kill drops a gem to collect
 }
 function bombSplash(x,y){boom(x,y,'#39ff14',16,300);addShake(5);emit('sfx','boom');
   for(const e of G.enemies){if(Math.abs(e.x-x)<70&&Math.abs(e.y-y)<70){e.hp-=3;e.flash=0.1;if(e.hp<=0)killEnemy(e);}}

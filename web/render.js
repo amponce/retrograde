@@ -445,6 +445,8 @@ function drawScene(){
   const k=1+(MUSIC.kickPulse||0)*0.012;            // gentle breathe on the kick
   ctx.translate(G.W/2,G.H/2); ctx.scale(k,k); ctx.translate(-G.W/2,-G.H/2);
   drawBG();
+  if(G.rogue)for(const g of G.gems){ ctx.save();ctx.shadowBlur=8;ctx.shadowColor='#39ff14';ctx.fillStyle='#9dff5a';
+    ctx.beginPath();ctx.moveTo(g.x,g.y-4);ctx.lineTo(g.x+4,g.y);ctx.lineTo(g.x,g.y+4);ctx.lineTo(g.x-4,g.y);ctx.closePath();ctx.fill();ctx.restore(); }
   for(const pu of G.pups)drawPup(pu);
   for(const b of G.bullets)drawBullet(b);
   for(const e of G.enemies)drawEnemy(e);

@@ -1,5 +1,5 @@
 // RETROGRADE — service worker (offline + installable)
-const CACHE = 'retrograde-v21';
+const CACHE = 'retrograde-v22';
 const ASSETS = [
   './',
   './index.html',
@@ -15,6 +15,7 @@ const ASSETS = [
   './core/entities.js',
   './core/weapons.js',
   './core/upgrades.js',
+  './core/rogueweapons.js',
   './core/groove.js',
   './core/rng.js',
   './core/daily.js',
