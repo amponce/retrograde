@@ -11,9 +11,21 @@ export const ROGUE_WEAPONS = {
   spread: { name:'SCATTER', desc:'wide fan, crowd control',       max:6 },
   seeker: { name:'SEEKER',  desc:'homing missiles',               max:6 },
   beam:   { name:'LANCE',   desc:'slow, piercing, heavy hits',    max:6 },
+  // evolved supers (terminal — reached by EVOLVE, not picked directly)
+  storm:  { name:'STORM',   desc:'a hose of bolts',     max:6, evolved:true },
+  nova:   { name:'NOVA',    desc:'360° bullet burst',   max:6, evolved:true },
+  swarm:  { name:'SWARM',   desc:'a cloud of missiles', max:6, evolved:true },
+  railgun:{ name:'RAILGUN', desc:'piercing mega-lance', max:6, evolved:true },
 };
 const MAX_WEAPONS = 5;
 export const STARTERS = ['bolt','spread','seeker','beam'];
+// EVOLUTION recipes: a maxed weapon + its paired passive -> the super.
+const EVO = {
+  bolt:   { passive:'haste',    into:'storm'   },
+  spread: { passive:'splinter', into:'nova'    },
+  seeker: { passive:'might',    into:'swarm'   },
+  beam:   { passive:'velocity', into:'railgun' },
+};
 
 export const ROGUE_PASSIVES = {
   might:   { name:'MIGHT',     desc:'+18% damage',           max:5, apply:()=>{ G.run.dmg*=1.18; } },
@@ -35,6 +47,10 @@ function weaponBaseCd(w){
   if(w.id==='bolt')   return Math.max(0.11, 0.42 - w.lvl*0.04);
   if(w.id==='spread') return Math.max(0.34, 0.80 - w.lvl*0.05);
   if(w.id==='seeker') return Math.max(0.45, 1.00 - w.lvl*0.07);
+  if(w.id==='storm')   return 0.09;   // evolved supers
+  if(w.id==='nova')    return 0.55;
+  if(w.id==='swarm')   return 0.50;
+  if(w.id==='railgun') return 0.70;
   return Math.max(0.55, 1.20 - w.lvl*0.08); // beam
 }
 function fireWeapon(w){
@@ -47,6 +63,15 @@ function fireWeapon(w){
     for(let i=0;i<n;i++){const a=ang+(rnd()-0.5)*1.4; pb(G.p.x,G.p.y,Math.cos(a)*spd,Math.sin(a)*spd,dmg,{seek:true,color:'#ffd23a',r:6});} emit('sfx','laser'); }
   else if(w.id==='beam'){ const dmg=5+l*2.5, spd=1150;
     pb(G.p.x,G.p.y,Math.cos(ang)*spd,Math.sin(ang)*spd,dmg,{pierce:true,color:'#22e1ff',r:6,len:26}); emit('sfx','laser'); }
+  // ----- evolved supers -----
+  else if(w.id==='storm'){ const n=4, dmg=4+l, spd=840;
+    for(let i=0;i<n;i++){const a=ang+(rnd()-0.5)*0.5; pb(G.p.x,G.p.y,Math.cos(a)*spd,Math.sin(a)*spd,dmg);} emit('sfx','shoot'); }
+  else if(w.id==='nova'){ const n=18, dmg=4+l, spd=560;            // full ring
+    for(let i=0;i<n;i++){const a=(i/n)*6.283; pb(G.p.x,G.p.y,Math.cos(a)*spd,Math.sin(a)*spd,dmg,{color:'#ff2d95'});} emit('sfx','bomb'); }
+  else if(w.id==='swarm'){ const n=6, dmg=6+l, spd=460;
+    for(let i=0;i<n;i++){const a=ang+(rnd()-0.5)*2.0; pb(G.p.x,G.p.y,Math.cos(a)*spd,Math.sin(a)*spd,dmg,{seek:true,color:'#ffd23a',r:7});} emit('sfx','laser'); }
+  else if(w.id==='railgun'){ const dmg=18+l*3, spd=1500;
+    pb(G.p.x,G.p.y,Math.cos(ang)*spd,Math.sin(ang)*spd,dmg,{pierce:true,color:'#22e1ff',r:8,len:42}); emit('sfx','laser'); }
 }
 export function tickRogueWeapons(dt){
   const r=G.run;
@@ -66,17 +91,20 @@ export function tickRogueWeapons(dt){
 
 // 1-of-3 draft mixing weapons (attack) and passives (defense/utility), honoring slot caps.
 export function rollRogueDraft(){
-  const opts=[];
-  for(const w of G.weapons){ const def=ROGUE_WEAPONS[w.id];
-    if(w.lvl<def.max) opts.push({kind:'wup',id:w.id,name:def.name+' Lv'+(w.lvl+1),desc:'level up your '+def.name.toLowerCase()}); }
-  if(G.weapons.length<MAX_WEAPONS) for(const id in ROGUE_WEAPONS){ if(!G.weapons.some(w=>w.id===id))
+  const opts=[], evos=[];
+  for(const w of G.weapons){ const def=ROGUE_WEAPONS[w.id], ev=EVO[w.id];
+    if(ev && w.lvl>=def.max && G.passives.some(p=>p.id===ev.passive))   // maxed + paired passive -> EVOLVE
+      evos.push({kind:'evolve',id:w.id,into:ev.into,name:'★ EVOLVE: '+ROGUE_WEAPONS[ev.into].name,desc:def.name+' + '+ROGUE_PASSIVES[ev.passive].name});
+    else if(!def.evolved && w.lvl<def.max)
+      opts.push({kind:'wup',id:w.id,name:def.name+' Lv'+(w.lvl+1),desc:'level up your '+def.name.toLowerCase()}); }
+  if(G.weapons.length<MAX_WEAPONS) for(const id in ROGUE_WEAPONS){ if(!ROGUE_WEAPONS[id].evolved && !G.weapons.some(w=>w.id===id))
     opts.push({kind:'wnew',id,name:'+ '+ROGUE_WEAPONS[id].name,desc:ROGUE_WEAPONS[id].desc}); }
   for(const p of G.passives){ const def=ROGUE_PASSIVES[p.id];
     if(p.lvl<def.max) opts.push({kind:'pup',id:p.id,name:def.name+' Lv'+(p.lvl+1),desc:def.desc}); }
   if(G.passives.length<MAX_PASSIVES) for(const id in ROGUE_PASSIVES){ if(!G.passives.some(p=>p.id===id))
     opts.push({kind:'pnew',id,name:ROGUE_PASSIVES[id].name,desc:ROGUE_PASSIVES[id].desc}); }
-  const out=[], bag=opts.slice();
-  for(let k=0;k<3 && bag.length;k++) out.push(bag.splice(Math.floor(rnd()*bag.length),1)[0]);
+  const out=evos.slice(0,2), bag=opts.slice();   // evolutions are always offered (prominent)
+  while(out.length<3 && bag.length) out.push(bag.splice(Math.floor(rnd()*bag.length),1)[0]);
   return out;
 }
 export function applyRogueChoice(o){
@@ -85,4 +113,5 @@ export function applyRogueChoice(o){
   else if(o.kind==='wup'){ const w=G.weapons.find(w=>w.id===o.id); if(w)w.lvl++; }
   else if(o.kind==='pnew'){ G.passives.push({id:o.id,lvl:1}); ROGUE_PASSIVES[o.id].apply(); }
   else if(o.kind==='pup'){ const p=G.passives.find(p=>p.id===o.id); if(p){ p.lvl++; ROGUE_PASSIVES[o.id].apply(); } }
+  else if(o.kind==='evolve'){ const w=G.weapons.find(w=>w.id===o.id); if(w){ w.id=o.into; w.fireT=0; } } // fuse into the super
 }
