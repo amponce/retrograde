@@ -1,5 +1,5 @@
 // RETROGRADE — service worker (offline + installable)
-const CACHE = 'retrograde-v19';
+const CACHE = 'retrograde-v20';
 const ASSETS = [
   './',
   './index.html',

@@ -180,25 +180,39 @@ function drawPlayer(){
     ctx.strokeStyle='#ffffff';ctx.lineWidth=2;ctx.shadowBlur=10;ctx.shadowColor='#ff8a3d';
     ctx.beginPath();ctx.arc(x,y,26,0,7);ctx.stroke();ctx.restore();
   }
-  // thrust flame (warm)
-  const fl=8+Math.random()*8*(p.thrust);
-  ctx.save();ctx.shadowBlur=12;ctx.shadowColor='#ffd23a';
-  ctx.fillStyle='#ffae3d';ctx.beginPath();ctx.moveTo(x-6,y+16);ctx.lineTo(x+6,y+16);ctx.lineTo(x,y+16+fl);ctx.closePath();ctx.fill();
+  const hit=p.hitFlash>0;
+  // twin thrust flames (warm, flicker)
+  const fl=7+Math.random()*7*(p.thrust);
+  ctx.save();ctx.shadowBlur=14;ctx.shadowColor='#ff8a3d';ctx.fillStyle='#ffd23a';
+  for(const ex of [-7,7]){ ctx.beginPath();ctx.moveTo(x+ex-3,y+12);ctx.lineTo(x+ex+3,y+12);ctx.lineTo(x+ex,y+12+fl);ctx.closePath();ctx.fill(); }
   ctx.restore();
-  // body — bright white/teal so it reads clearly against dark space and magenta foes
-  ctx.save();ctx.shadowBlur=16;ctx.shadowColor=p.hitFlash>0?'#fff':'#39ffd0';
-  ctx.fillStyle=p.hitFlash>0?'#fff':'#eafff8';
+  // engine glow
+  ctx.save();ctx.shadowBlur=10;ctx.shadowColor='#39ffd0';ctx.fillStyle='rgba(57,255,208,.9)';
+  ctx.beginPath();ctx.arc(x-7,y+11,2.4,0,7);ctx.arc(x+7,y+11,2.4,0,7);ctx.fill();ctx.restore();
+  // hull — sleek arrowhead: dark gradient core + glowing neon edge
+  ctx.save();
   ctx.beginPath();
-  ctx.moveTo(x,y-20); ctx.lineTo(x+16,y+14); ctx.lineTo(x+6,y+12);
-  ctx.lineTo(x,y+18); ctx.lineTo(x-6,y+12); ctx.lineTo(x-16,y+14); ctx.closePath();ctx.fill();
-  // wing accents
-  ctx.fillStyle=p.hitFlash>0?'#fff':'#39e6c0';
-  ctx.beginPath();ctx.moveTo(x-16,y+14);ctx.lineTo(x-8,y+6);ctx.lineTo(x-6,y+12);ctx.closePath();ctx.fill();
-  ctx.beginPath();ctx.moveTo(x+16,y+14);ctx.lineTo(x+8,y+6);ctx.lineTo(x+6,y+12);ctx.closePath();ctx.fill();
-  // cockpit
-  ctx.shadowBlur=8;ctx.shadowColor='#39ffd0';ctx.fillStyle='#1fae8e';
-  ctx.beginPath();ctx.ellipse(x,y-2,4,8,0,0,7);ctx.fill();
+  ctx.moveTo(x,y-22);                 // nose
+  ctx.lineTo(x+9,y-2);
+  ctx.lineTo(x+18,y+15);              // right wingtip
+  ctx.lineTo(x+7,y+11);
+  ctx.lineTo(x,y+17);                 // tail notch
+  ctx.lineTo(x-7,y+11);
+  ctx.lineTo(x-18,y+15);             // left wingtip
+  ctx.lineTo(x-9,y-2);
+  ctx.closePath();
+  const g=ctx.createLinearGradient(x,y-22,x,y+17);
+  if(hit){ g.addColorStop(0,'#fff'); g.addColorStop(1,'#fff'); }
+  else { g.addColorStop(0,'#0c3b39'); g.addColorStop(0.5,'#16998a'); g.addColorStop(1,'#0c3b39'); }
+  ctx.fillStyle=g; ctx.fill();
+  ctx.lineWidth=2; ctx.strokeStyle=hit?'#fff':'#39ffd0'; ctx.shadowBlur=14; ctx.shadowColor='#39ffd0'; ctx.stroke();
+  // spine highlight
+  ctx.shadowBlur=0; ctx.strokeStyle=hit?'#fff':'rgba(180,255,240,.8)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(x,y-18); ctx.lineTo(x,y+12); ctx.stroke();
   ctx.restore();
+  // cockpit — glowing canopy
+  ctx.save();ctx.shadowBlur=10;ctx.shadowColor='#22e1ff';ctx.fillStyle=hit?'#fff':'#9ffcff';
+  ctx.beginPath();ctx.ellipse(x,y-4,3.2,7,0,0,7);ctx.fill();ctx.restore();
   // shield bubble — brightness/thickness scales with remaining shield points
   if(p.shield>0){
     const base=0.25+0.18*p.shield, fl=Math.max(0,p.shieldFlash);
