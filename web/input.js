@@ -111,7 +111,8 @@ export function attachInput(canvas, sceneGetter){
 
 export function startDailyToday(){ ensureAudio(); startDaily(dailyConfig(dailySeed(new Date()))); }
 export function startOverdriveRun(){ ensureAudio(); startOverdrive((Math.random()*0x100000000)>>>0); } // fresh random seed each run
-export function startRogueRun(){ ensureAudio(); startRogue((Math.random()*0x100000000)>>>0); }
+export function startRogueRun(){ ensureAudio(); G.scene='roguepick'; }   // open the starter-pick screen
+export function startRogueWith(id){ ensureAudio(); startRogue((Math.random()*0x100000000)>>>0, id); }
 
 // LAUNCH / RETRY DOM buttons. The over/start overlays themselves are shown/hidden by
 // main.js based on G.scene; these handlers just unlock audio and route to the map.

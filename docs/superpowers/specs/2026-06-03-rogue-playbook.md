@@ -17,11 +17,11 @@ Weak start (learn) → mid-run (build comes online = power fantasy) → late (ov
 - ⬜ Run length target + a real climax/finale; ⬜ timed event spikes (elite waves at intervals).
 
 ## 3. Weapons & the build (the heart)
-- ⬜ **Pick a starting weapon** at run start (character/loadout identity).
+- ✅ **Pick a starting weapon** at run start (CHOOSE WEAPON screen: PULSE/SCATTER/SEEKER/LANCE).
 - ✅ Weapons **stack** (multiple fire simultaneously) and ✅ **level up**.
 - ⬜ **Evolutions/fusions** — max a weapon + own the right passive → it evolves into a super (the "combine weapons" payoff; the genre's signature dopamine).
-- 🔶 **Passives** distinct from weapons (magnet, damage/Might, armor, move speed, cooldown, area, projectiles, duration, luck, regen). We have a few as picks; needs a real passive set + slots.
-- 🔶 **Slot caps** (e.g., 6 weapons + 6 passives) force trade-offs. We cap weapons at 5; no passive slots yet.
+- ✅ **Passives** distinct from weapons — 9 of them (Might, Haste, Splinter, Velocity, Magnet, Plating, Regen, Thrusters, Growth), each levels and buffs all weapons via G.run.
+- ✅ **Slot caps** — 5 weapons + 6 passives; at cap the draft only offers leveling.
 
 ## 4. Upgrade-choice design
 1-of-3/4 on level-up; categorized (attack/defense/utility); choices create build identity + strategy (bad picks = overwhelmed).

@@ -4,7 +4,7 @@ import { drainEvents } from '../core/events.js';
 import { WAVES_PER_LEVEL } from '../core/config.js';
 import { render } from './render.js';
 import { ensureAudio, applyAudioEvents, loadProgress, musicTick } from './audio.js';
-import { attachInput, buildInput, wireScreenButtons, startDailyToday, startOverdriveRun, startRogueRun } from './input.js';
+import { attachInput, buildInput, wireScreenButtons, startDailyToday, startOverdriveRun, startRogueRun, startRogueWith } from './input.js';
 import { goMap, chooseUpgrade } from '../core/levels.js';
 
 const canvas = document.getElementById('game');
@@ -19,6 +19,7 @@ const runTitle = document.getElementById('runTitle');
 const runReached = document.getElementById('runReached');
 const runScore = document.getElementById('runScore');
 const runBest = document.getElementById('runBest');
+const roguePick = document.getElementById('roguePick');
 const draftScreen = document.getElementById('draftScreen');
 const draftEls = [0,1,2].map(i=>document.getElementById('draft'+i));
 const dailyDate = document.getElementById('dailyDate');
@@ -54,6 +55,7 @@ let runCardShown = false;
 let draftShown = false;
 function syncScreens(){
   startScreen.classList.toggle('hide', G.scene!=='start');
+  roguePick.classList.toggle('hide', G.scene!=='roguepick');
   if(G.scene==='over'){
     overScore.textContent='SCORE '+G.score;
     overWave.textContent='Level '+G.level+' · Wave '+G.levelWave+'/'+WAVES_PER_LEVEL;
@@ -131,6 +133,9 @@ const runMenuBtn = document.getElementById('runMenuBtn');
 if(runAgainBtn) runAgainBtn.onclick = () => { (G.rogue ? startRogueRun : startOverdriveRun)(); };
 if(runMenuBtn) runMenuBtn.onclick = () => goMap();
 draftEls.forEach((el,i)=>{ if(el) el.onclick = () => chooseUpgrade(i); });
+const pickMap={pick_bolt:'bolt',pick_spread:'spread',pick_seeker:'seeker',pick_beam:'beam'};
+for(const id in pickMap){ const el=document.getElementById(id); if(el) el.onclick = () => startRogueWith(pickMap[id]); }
+const rogueBackBtn=document.getElementById('rogueBackBtn'); if(rogueBackBtn) rogueBackBtn.onclick = () => { G.scene='start'; };
 
 let lastT=performance.now(), acc=0; const STEP=1/120;
 function frame(now){

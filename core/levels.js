@@ -36,12 +36,12 @@ function startOverdrive(seed){
   G.theme=themeFor(1); G.nebulae.forEach((nb,i)=>nb.c=G.theme.neb[i%G.theme.neb.length]);
   emit('music','start'); beginNextWave();
 }
-function startRogue(seed){
+function startRogue(seed, starter){
   seedRNG(seed); resetGame();
   G.rogue=true; G.level=1; G.scene='play';
   G.theme=themeFor(1); G.nebulae.forEach((nb,i)=>nb.c=G.theme.neb[i%G.theme.neb.length]);
   G.spawnTimer=0.5;              // first swarmer arrives shortly; no waves — continuous horde
-  G.weapons=[{id:'bolt',lvl:1,fireT:0}];   // starter weapon (level-ups add more)
+  G.weapons=[{id:starter||'bolt',lvl:1,fireT:0}];   // chosen starter weapon (level-ups add more)
   G.worldW=G.W*2.4; G.worldH=G.H*2.4;      // large arena to roam; camera follows
   G.p.x=G.worldW/2; G.p.y=G.worldH/2;      // start in the middle of the world
   G.camX=G.worldW/2-G.W/2; G.camY=G.worldH/2-G.H/2;
