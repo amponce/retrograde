@@ -70,13 +70,21 @@ function startWave(n){
   G.waveActive=true; G.toSpawn=[]; emit('sfx','wave');
   const count = Math.min(22, 8 + Math.floor(n*0.85));   // lower high-level cap so L3+ isn't a wall
   const patterns=['dive','sine','swoop','hover'];
+  // archetypes unlock as the level's waves progress — wave 1 basics, each later wave adds a type
+  const roster=['grunt'];
+  if(G.levelWave>=2)roster.push('darter');
+  if(G.levelWave>=3)roster.push('tank');
+  if(G.levelWave>=4)roster.push('weaver');
+  if(G.level>=3)roster.push('splitter');
   for(let i=0;i<count;i++){
     const pat=patterns[(n+i)%patterns.length];
-    G.toSpawn.push({pat, delay: i*0.44 + rnd()*0.18, hp: 1+Math.floor(n/7), tier:'grunt'}); // slower HP ramp at high levels
+    let type='grunt';
+    if(roster.length>1 && rnd()<0.42) type=roster[1+Math.floor(rnd()*(roster.length-1))]; // ~40% archetypes, rest grunts
+    G.toSpawn.push({pat, delay: i*0.44 + rnd()*0.18, hp: 1+Math.floor(n/7), type});
   }
   // a few carrier (capsule-dropping) enemies, spread through the wave (capped so late levels stay fair)
   const carriers=Math.min(3, 1+Math.floor(n/6));
-  for(let c=0;c<carriers;c++){ const idx=Math.floor((c+1)*count/(carriers+1)); if(G.toSpawn[idx])G.toSpawn[idx].tier='carrier'; }
+  for(let c=0;c<carriers;c++){ const idx=Math.floor((c+1)*count/(carriers+1)); if(G.toSpawn[idx])G.toSpawn[idx].type='carrier'; }
   G.spawnTimer=0;
 }
 export { levelNodes, goMap, openLevelSelect, startLevel, startDaily, startOverdrive, beginNextWave, winLevel, startWave, offerDraft, chooseUpgrade };
