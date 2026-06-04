@@ -37,8 +37,11 @@ export const ROGUE_PASSIVES = {
   regen:   { name:'NANO-REGEN',desc:'+40% shield regen',     max:4, apply:()=>{ G.run.regen*=1.4; } },
   thrust:  { name:'THRUSTERS', desc:'+12% move speed',       max:4, apply:()=>{ G.p.speed*=1.12; } },
   growth:  { name:'GROWTH',    desc:'+20% XP from gems',     max:4, apply:()=>{ G.xpGain*=1.2; } },
+  phase:   { name:'PHASE',     desc:'blink invulnerable, more often per level', max:3, apply:()=>{ G.p.phase=(G.p.phase||0)+1; } },
 };
 const MAX_PASSIVES = 6;
+// defensive / speed / maneuver picks — the draft guarantees at least one of these every level-up
+const DEF_UTIL = new Set(['magnet','plating','regen','thrust','growth','phase']);
 
 function nearest(){ let b=null,bd=1e18; for(const e of G.enemies){const dx=e.x-G.p.x,dy=e.y-G.p.y,d=dx*dx+dy*dy; if(d<bd){bd=d;b=e;}} return b; }
 function pb(x,y,vx,vy,dmg,extra){ G.bullets.push(Object.assign({x,y,vx,vy,color:'#39ffd0',r:5,len:11,dmg,pierce:false,bomb:false,life:2.4,hits:0},extra||{})); }
@@ -105,6 +108,12 @@ export function rollRogueDraft(){
     opts.push({kind:'pnew',id,name:ROGUE_PASSIVES[id].name,desc:ROGUE_PASSIVES[id].desc}); }
   const out=evos.slice(0,2), bag=opts.slice();   // evolutions are always offered (prominent)
   while(out.length<3 && bag.length) out.push(bag.splice(Math.floor(rnd()*bag.length),1)[0]);
+  // guarantee a defensive/utility choice is on offer (shield/speed/maneuver), not an all-weapons draft
+  if(!out.some(o=>(o.kind==='pup'||o.kind==='pnew') && DEF_UTIL.has(o.id))){
+    const du=bag.find(o=>(o.kind==='pup'||o.kind==='pnew') && DEF_UTIL.has(o.id));
+    const ri=out.findIndex(o=>o.kind!=='evolve');
+    if(du && ri>=0) out[ri]=du;
+  }
   return out;
 }
 export function applyRogueChoice(o){

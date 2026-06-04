@@ -363,6 +363,15 @@ function drawHUD(){
   ctx.fillText(G.rogue ? '🗡 ROGUE  ·  LVL '+G.plevel+'  ·  '+Math.floor(G.runT)+'s'
              : G.overdrive ? '⚡ OVERDRIVE  ·  LVL '+G.level+'  ·  WAVE '+G.levelWave
              : 'LVL '+G.level+'  ·  WAVE '+Math.min(G.levelWave,WAVES_PER_LEVEL)+'/'+WAVES_PER_LEVEL, 16,50);
+  if(G.rogue){ // XP-to-next-level bar (flashes green on gem pickup) + telegraphed wave banner
+    const bw=G.W-32, bh=6, bx=16, by=60, frac=Math.max(0,Math.min(1,G.xp/G.xpNext)), fl=G.xpFlash>0;
+    ctx.fillStyle='rgba(255,255,255,0.12)'; ctx.fillRect(bx,by,bw,bh);
+    ctx.save(); ctx.shadowBlur=fl?16:7; ctx.shadowColor='#39ff14'; ctx.fillStyle=fl?'#d6ffb0':'#39ff14';
+    ctx.fillRect(bx,by,bw*frac,bh); ctx.restore();
+    if(G.waveBannerT>0){ ctx.save(); ctx.globalAlpha=Math.min(1,G.waveBannerT*1.4); ctx.textAlign='center';
+      ctx.font="700 22px 'Audiowide', sans-serif"; ctx.shadowBlur=14; ctx.shadowColor='#ff2d95'; ctx.fillStyle='#ffd23a';
+      ctx.fillText('⚠ '+G.waveBanner, G.W/2, 112); ctx.restore(); ctx.textAlign='left'; }
+  }
   // beat-pulsing music indicator (equalizer bars that jump on the beat)
   if(MUSIC.on){const bx=72,by=46,beat=MUSIC.beatPulse||0;
     for(let i=0;i<3;i++){const hgt=4+ (i===1?beat*10:beat*6) + Math.sin(Date.now()*0.01+i)*1.5;

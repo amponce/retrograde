@@ -30,25 +30,43 @@ function autoFireVS(){ // auto-aim a stream at the nearest swarmer; respects run
     G.bullets.push({x:G.p.x,y:G.p.y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,color:'#39ffd0',r:5,len:11,dmg,pierce:G.run.pierce,bomb:false,life:2.2,hits:0}); }
   emit('sfx','shoot');
 }
-function rogueSpawn(dt){
-  G.spawnTimer-=dt;
-  if(G.spawnTimer<=0){
-    G.spawnTimer=Math.max(0.20, 0.55 - G.runT*0.003);   // gentler ramp than before — survivable, builds over minutes
-    const n=1+Math.floor(G.runT/30);
-    for(let i=0;i<n;i++) spawnRogueEnemy();
+// ROGUE waves: telegraphed, themed batches with short lulls — reads as PLANNED (not random soup)
+// and caps on-screen density, so a leveling build can actually clear and feel its progress.
+const ROGUE_WAVES = [
+  {label:'GRUNT RUSH',   mix:['grunt']},
+  {label:'DARTER SWARM', mix:['darter']},
+  {label:'PINCER',       mix:['grunt','darter']},
+  {label:'WEAVE STORM',  mix:['weaver','grunt']},
+  {label:'TANK SQUAD',   mix:['tank','grunt']},
+  {label:'SPLIT CELLS',  mix:['splitter','darter']},
+  {label:'ONSLAUGHT',    mix:['grunt','darter','weaver','tank']},
+];
+function startRogueWave(n){
+  const comp=ROGUE_WAVES[(n-1)%ROGUE_WAVES.length];
+  const tier=Math.floor((n-1)/2);                 // strength steps up every 2 waves
+  const count=4+Math.floor(n*1.1);                // density grows with the run
+  for(let i=0;i<count;i++)
+    G.rogueQueue.push({type:comp.mix[i%comp.mix.length], tier, delay:i*(2.6/count)+rnd()*0.18}); // pour in over ~2.6s
+  G.waveBanner='WAVE '+n+' · '+comp.label; G.waveBannerT=1.9;
+  emit('sfx','wave');
+}
+function rogueDirector(dt){
+  for(let i=G.rogueQueue.length-1;i>=0;i--){ const q=G.rogueQueue[i]; q.delay-=dt;
+    if(q.delay<=0){ spawnRogueEnemy(q.type,q.tier); G.rogueQueue.splice(i,1); } }
+  if(G.waveBannerT>0)G.waveBannerT-=dt;
+  G.waveT-=dt;
+  // next wave once this one is mostly cleared (rewards a strong build) or a hard lull-cap elapses (never stalls)
+  if(G.rogueQueue.length===0 && (G.enemies.length<=3 || G.waveT<=0)){
+    G.waveNum++; startRogueWave(G.waveNum); G.waveT=14;
   }
 }
-function spawnRogueEnemy(){
+function spawnRogueEnemy(type,tier){
   const m=28, edge=Math.floor(rnd()*4); let x,y;          // spawn just outside the current view, in world coords
   if(edge===0){x=G.camX+rnd()*G.W; y=G.camY-m;}
   else if(edge===1){x=G.camX+rnd()*G.W; y=G.camY+G.H+m;}
   else if(edge===2){x=G.camX-m; y=G.camY+rnd()*G.H;}
   else {x=G.camX+G.W+m; y=G.camY+rnd()*G.H;}
   x=Math.max(-m,Math.min(G.worldW+m,x)); y=Math.max(-m,Math.min(G.worldH+m,y));
-  const t=G.runT, tier=Math.floor(t/15);
-  // archetype roster widens quickly so the horde has variety early
-  const roster=['grunt']; if(t>8)roster.push('darter'); if(t>18)roster.push('weaver'); if(t>30)roster.push('tank'); if(t>45)roster.push('splitter');
-  const type=roster[Math.floor(rnd()*roster.length)];
   let w=26,h=24,hp=2+tier*2,vy=42+rnd()*16+tier*3;
   if(type==='darter'){ w=22;h=22;hp=2+tier;        vy=92+rnd()*28+tier*5; }    // fast, fragile
   else if(type==='weaver'){ w=28;h=26;hp=3+tier*2; vy=64+tier*3; }             // medium, erratic
@@ -60,8 +78,10 @@ function updateGems(dt){ // gems drift to you within the magnet radius; collect 
   for(const g of G.gems){
     const dx=G.p.x-g.x, dy=G.p.y-g.y, d=Math.hypot(dx,dy)||1;
     if(d<G.magnet){ const pull=Math.min(1, dt*7 + (G.magnet-d)/G.magnet*dt*10); g.x+=dx*pull; g.y+=dy*pull; }
-    if(d<16){ g.dead=true; G.xp+=g.val*G.xpGain;
-      if(G.xp>=G.xpNext){ G.plevel++; G.xp-=G.xpNext; G.xpNext=Math.ceil(G.xpNext*1.55); offerDraft(); break; } } // steeper curve = level-ups spread out
+    else { const inv=36*dt/d; g.x+=dx*inv; g.y+=dy*inv; }   // slow global drift so gems are never permanently stranded
+    if(d<16){ g.dead=true; G.xp+=g.val*G.xpGain; G.xpFlash=0.16;   // collect: brief XP-bar flash + a green spark pop
+      for(let s=0;s<5;s++){const a=rnd()*6.28,sp=50+rnd()*70; G.parts.push({x:g.x,y:g.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:0.3,age:0,color:'#9dff5a',r:1.4+rnd()*1.4});}
+      if(G.xp>=G.xpNext){ G.plevel++; G.xp-=G.xpNext; G.xpNext=Math.ceil(G.xpNext*1.5); G.levelFlash=0.5; addShake(4); emit('sfx','life'); offerDraft(); break; } } // level up: fanfare + draft
   }
   G.gems=G.gems.filter(g=>!g.dead);
 }
@@ -98,12 +118,13 @@ export function advance(input, dt){
   if(G.rogue){ // roam a large world; camera follows, clamped to world bounds
     G.p.x=Math.max(G.p.w/2,Math.min(G.worldW-G.p.w/2,G.p.x));
     G.p.y=Math.max(G.p.h/2,Math.min(G.worldH-G.p.h/2,G.p.y));
-    // deadzone camera: hold still while you roam the central zone; only scroll when you reach the edge
-    const mx=G.W*0.34, my=G.H*0.34;
-    if(G.p.x < G.camX+mx) G.camX=G.p.x-mx; else if(G.p.x > G.camX+G.W-mx) G.camX=G.p.x-(G.W-mx);
-    if(G.p.y < G.camY+my) G.camY=G.p.y-my; else if(G.p.y > G.camY+G.H-my) G.camY=G.p.y-(G.H-my);
-    G.camX=Math.max(0,Math.min(G.worldW-G.W,G.camX));
-    G.camY=Math.max(0,Math.min(G.worldH-G.H,G.camY));
+    // deadzone camera: target stays put while you roam the central zone, chases only at the edge —
+    // then GLIDE the camera toward that target instead of snapping (smooth scroll).
+    const mx=G.W*0.32, my=G.H*0.32; let tx=G.camX, ty=G.camY;
+    if(G.p.x < G.camX+mx) tx=G.p.x-mx; else if(G.p.x > G.camX+G.W-mx) tx=G.p.x-(G.W-mx);
+    if(G.p.y < G.camY+my) ty=G.p.y-my; else if(G.p.y > G.camY+G.H-my) ty=G.p.y-(G.H-my);
+    tx=Math.max(0,Math.min(G.worldW-G.W,tx)); ty=Math.max(0,Math.min(G.worldH-G.H,ty));
+    const cs=Math.min(1,dt*6); G.camX+=(tx-G.camX)*cs; G.camY+=(ty-G.camY)*cs;
   } else {
     G.p.x=Math.max(G.p.w/2,Math.min(G.W-G.p.w/2,G.p.x));
     G.p.y=Math.max(60,Math.min(G.H-50,G.p.y));
@@ -115,6 +136,9 @@ export function advance(input, dt){
   else if((input.fire||input.mouseActive)&&G.p.fireCd<=0){ tryFire(); }
   if(G.p.rapid>0)G.p.rapid-=dt;
   if(G.p.invuln>0)G.p.invuln-=dt;
+  if(G.rogue && (G.p.phase||0)>0){ G.p.phaseT=(G.p.phaseT||0)-dt;   // PHASE: periodic brief invulnerability (more frequent per level)
+    if(G.p.phaseT<=0){ G.p.invuln=Math.max(G.p.invuln,0.7); G.p.phaseT=7-G.p.phase*1.2; G.p.shieldFlash=0.4; } }
+  if(G.xpFlash>0)G.xpFlash-=dt; if(G.levelFlash>0)G.levelFlash-=dt;
   if(G.p.hitFlash>0)G.p.hitFlash-=dt;
   if(G.p.shieldFlash>0)G.p.shieldFlash-=dt;
   // shield regen: build the timer when not recently hit, regain a point when full
@@ -136,7 +160,7 @@ export function advance(input, dt){
 
   // level / wave flow
   if(G.rogue){
-    rogueSpawn(dt); updateGems(dt);   // ROGUE: continuous edge-spawned horde + gem collection, no waves/boss
+    rogueDirector(dt); updateGems(dt);   // ROGUE: telegraphed wave director + gem collection, no boss
   } else if(G.phase==='intermission'){
     G.interT-=dt;
     if(G.interT<=0){

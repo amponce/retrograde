@@ -40,7 +40,7 @@ function startRogue(seed, starter){
   seedRNG(seed); resetGame();
   G.rogue=true; G.level=1; G.scene='play';
   G.theme=themeFor(1); G.nebulae.forEach((nb,i)=>nb.c=G.theme.neb[i%G.theme.neb.length]);
-  G.spawnTimer=0.5;              // first swarmer arrives shortly; no waves — continuous horde
+  G.waveNum=0; G.waveT=2.2; G.rogueQueue=[];   // first telegraphed wave arrives in ~2s
   G.weapons=[{id:starter||'bolt',lvl:1,fireT:0}];   // chosen starter weapon (level-ups add more)
   G.p.speed=250;                                     // calmer default roam speed (Thrusters passive raises it)
   G.worldW=G.W*2.4; G.worldH=G.H*2.4;      // large arena to roam; camera follows
