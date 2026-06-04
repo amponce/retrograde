@@ -32,7 +32,11 @@ function autoFireVS(){ // auto-aim a stream at the nearest swarmer; respects run
 }
 function rogueSpawn(dt){
   G.spawnTimer-=dt;
-  if(G.spawnTimer<=0){ G.spawnTimer=Math.max(0.12, 0.8 - G.runT*0.010); spawnRogueEnemy(); } // rate climbs with run time
+  if(G.spawnTimer<=0){
+    G.spawnTimer=Math.max(0.07, 0.30 - G.runT*0.004);   // interval shrinks with run time
+    const n=1+Math.floor(G.runT/16);                     // spawn more at once over time -> a real swarm
+    for(let i=0;i<n;i++) spawnRogueEnemy();
+  }
 }
 function spawnRogueEnemy(){
   const m=28, edge=Math.floor(rnd()*4); let x,y;          // spawn just outside the current view, in world coords
@@ -41,10 +45,16 @@ function spawnRogueEnemy(){
   else if(edge===2){x=G.camX-m; y=G.camY+rnd()*G.H;}
   else {x=G.camX+G.W+m; y=G.camY+rnd()*G.H;}
   x=Math.max(-m,Math.min(G.worldW+m,x)); y=Math.max(-m,Math.min(G.worldH+m,y));
-  const tier=Math.floor(G.runT/15);                    // swarmers get stronger every ~15s
-  const hp=2+tier*2;
-  G.enemies.push({x,y,w:26,h:24,baseX:x,t:rnd()*6,hp,maxhp:hp,carrier:false,type:'grunt',
-    fireT:99,vy:50+rnd()*30+tier*5,amp:0,sp:1,flash:0,homing:true});
+  const t=G.runT, tier=Math.floor(t/15);
+  // archetype roster widens quickly so the horde has variety early
+  const roster=['grunt']; if(t>8)roster.push('darter'); if(t>18)roster.push('weaver'); if(t>30)roster.push('tank'); if(t>45)roster.push('splitter');
+  const type=roster[Math.floor(rnd()*roster.length)];
+  let w=26,h=24,hp=3+tier*2,vy=55+rnd()*25+tier*4;
+  if(type==='darter'){ w=22;h=22;hp=2+tier;        vy=110+rnd()*40+tier*6; }   // fast, fragile
+  else if(type==='weaver'){ w=28;h=26;hp=4+tier*2; vy=80+tier*4; }             // medium, erratic
+  else if(type==='tank'){ w=42;h=38;hp=12+tier*5;  vy=30+tier*2; }             // slow, beefy
+  else if(type==='splitter'){ w=30;h=28;hp=4+tier*2; vy=55+tier*3; }           // splits on death
+  G.enemies.push({x,y,w,h,baseX:x,t:rnd()*6,hp,maxhp:hp,carrier:false,type,fireT:99,vy,amp:0,sp:1,flash:0,homing:true});
 }
 function updateGems(dt){ // gems drift to you within the magnet radius; collect -> XP -> level-up draft
   for(const g of G.gems){
@@ -87,8 +97,12 @@ export function advance(input, dt){
   if(G.rogue){ // roam a large world; camera follows, clamped to world bounds
     G.p.x=Math.max(G.p.w/2,Math.min(G.worldW-G.p.w/2,G.p.x));
     G.p.y=Math.max(G.p.h/2,Math.min(G.worldH-G.p.h/2,G.p.y));
-    G.camX=Math.max(0,Math.min(G.worldW-G.W,G.p.x-G.W/2));
-    G.camY=Math.max(0,Math.min(G.worldH-G.H,G.p.y-G.H/2));
+    // deadzone camera: hold still while you roam the central zone; only scroll when you reach the edge
+    const mx=G.W*0.34, my=G.H*0.34;
+    if(G.p.x < G.camX+mx) G.camX=G.p.x-mx; else if(G.p.x > G.camX+G.W-mx) G.camX=G.p.x-(G.W-mx);
+    if(G.p.y < G.camY+my) G.camY=G.p.y-my; else if(G.p.y > G.camY+G.H-my) G.camY=G.p.y-(G.H-my);
+    G.camX=Math.max(0,Math.min(G.worldW-G.W,G.camX));
+    G.camY=Math.max(0,Math.min(G.worldH-G.H,G.camY));
   } else {
     G.p.x=Math.max(G.p.w/2,Math.min(G.W-G.p.w/2,G.p.x));
     G.p.y=Math.max(60,Math.min(G.H-50,G.p.y));

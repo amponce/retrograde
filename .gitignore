@@ -2,3 +2,6 @@
 .omc/
 .claude/
 .DS_Store
+.playwright-mcp/
+*.png
+!icon-*.png

@@ -457,8 +457,9 @@ function drawScene(){
   drawBG();                                         // screen-space starfield (fixed window)
   ctx.save();
   if(G.rogue){ ctx.translate(-G.camX,-G.camY); drawWorldGrid(); } // world layer scrolls with the camera
-  if(G.rogue)for(const g of G.gems){ ctx.save();ctx.shadowBlur=8;ctx.shadowColor='#39ff14';ctx.fillStyle='#9dff5a';
-    ctx.beginPath();ctx.moveTo(g.x,g.y-4);ctx.lineTo(g.x+4,g.y);ctx.lineTo(g.x,g.y+4);ctx.lineTo(g.x-4,g.y);ctx.closePath();ctx.fill();ctx.restore(); }
+  if(G.rogue)for(const g of G.gems){ ctx.save();ctx.shadowBlur=11;ctx.shadowColor='#39ff14';ctx.fillStyle='#9dff5a';
+    ctx.beginPath();ctx.moveTo(g.x,g.y-6);ctx.lineTo(g.x+5,g.y);ctx.lineTo(g.x,g.y+6);ctx.lineTo(g.x-5,g.y);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#eaffd0';ctx.beginPath();ctx.arc(g.x,g.y,1.7,0,7);ctx.fill();ctx.restore(); }
   for(const pu of G.pups)drawPup(pu);
   for(const b of G.bullets)drawBullet(b);
   for(const e of G.enemies)drawEnemy(e);
