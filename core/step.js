@@ -33,8 +33,8 @@ function autoFireVS(){ // auto-aim a stream at the nearest swarmer; respects run
 function rogueSpawn(dt){
   G.spawnTimer-=dt;
   if(G.spawnTimer<=0){
-    G.spawnTimer=Math.max(0.07, 0.30 - G.runT*0.004);   // interval shrinks with run time
-    const n=1+Math.floor(G.runT/16);                     // spawn more at once over time -> a real swarm
+    G.spawnTimer=Math.max(0.20, 0.55 - G.runT*0.003);   // gentler ramp than before — survivable, builds over minutes
+    const n=1+Math.floor(G.runT/30);
     for(let i=0;i<n;i++) spawnRogueEnemy();
   }
 }
@@ -49,11 +49,11 @@ function spawnRogueEnemy(){
   // archetype roster widens quickly so the horde has variety early
   const roster=['grunt']; if(t>8)roster.push('darter'); if(t>18)roster.push('weaver'); if(t>30)roster.push('tank'); if(t>45)roster.push('splitter');
   const type=roster[Math.floor(rnd()*roster.length)];
-  let w=26,h=24,hp=3+tier*2,vy=55+rnd()*25+tier*4;
-  if(type==='darter'){ w=22;h=22;hp=2+tier;        vy=110+rnd()*40+tier*6; }   // fast, fragile
-  else if(type==='weaver'){ w=28;h=26;hp=4+tier*2; vy=80+tier*4; }             // medium, erratic
-  else if(type==='tank'){ w=42;h=38;hp=12+tier*5;  vy=30+tier*2; }             // slow, beefy
-  else if(type==='splitter'){ w=30;h=28;hp=4+tier*2; vy=55+tier*3; }           // splits on death
+  let w=26,h=24,hp=2+tier*2,vy=42+rnd()*16+tier*3;
+  if(type==='darter'){ w=22;h=22;hp=2+tier;        vy=92+rnd()*28+tier*5; }    // fast, fragile
+  else if(type==='weaver'){ w=28;h=26;hp=3+tier*2; vy=64+tier*3; }             // medium, erratic
+  else if(type==='tank'){ w=42;h=38;hp=11+tier*5;  vy=26+tier*2; }             // slow, beefy
+  else if(type==='splitter'){ w=30;h=28;hp=4+tier*2; vy=50+tier*3; }           // splits on death
   G.enemies.push({x,y,w,h,baseX:x,t:rnd()*6,hp,maxhp:hp,carrier:false,type,fireT:99,vy,amp:0,sp:1,flash:0,homing:true});
 }
 function updateGems(dt){ // gems drift to you within the magnet radius; collect -> XP -> level-up draft
@@ -61,7 +61,7 @@ function updateGems(dt){ // gems drift to you within the magnet radius; collect 
     const dx=G.p.x-g.x, dy=G.p.y-g.y, d=Math.hypot(dx,dy)||1;
     if(d<G.magnet){ const pull=Math.min(1, dt*7 + (G.magnet-d)/G.magnet*dt*10); g.x+=dx*pull; g.y+=dy*pull; }
     if(d<16){ g.dead=true; G.xp+=g.val*G.xpGain;
-      if(G.xp>=G.xpNext){ G.plevel++; G.xp-=G.xpNext; G.xpNext=Math.ceil(G.xpNext*1.32); offerDraft(); break; } }
+      if(G.xp>=G.xpNext){ G.plevel++; G.xp-=G.xpNext; G.xpNext=Math.ceil(G.xpNext*1.55); offerDraft(); break; } } // steeper curve = level-ups spread out
   }
   G.gems=G.gems.filter(g=>!g.dead);
 }
@@ -83,12 +83,13 @@ export function advance(input, dt){
   G.shootingStars=G.shootingStars.filter(ss=>ss.age<ss.life);
 
   // player movement
+  const ease=G.rogue?13:18;   // ROGUE follows the cursor a touch slower (calmer roam)
   if(input.grab){ // touch: ease toward the relative target set by the drag delta
-    G.p.x+=(input.tx-G.p.x)*Math.min(1,dt*18); G.p.y+=(input.ty-G.p.y)*Math.min(1,dt*18);
+    G.p.x+=(input.tx-G.p.x)*Math.min(1,dt*ease); G.p.y+=(input.ty-G.p.y)*Math.min(1,dt*ease);
     G.p.thrust=1;
   } else if(input.mouseActive){ // desktop mouse: ship eases toward the cursor (world coords in ROGUE)
     const tx=G.rogue?G.camX+input.mx:input.mx, ty=G.rogue?G.camY+input.my:input.my;
-    G.p.x+=(tx-G.p.x)*Math.min(1,dt*18); G.p.y+=(ty-G.p.y)*Math.min(1,dt*18);
+    G.p.x+=(tx-G.p.x)*Math.min(1,dt*ease); G.p.y+=(ty-G.p.y)*Math.min(1,dt*ease);
     G.p.thrust=1;
   } else {
     let mx=(input.right?1:0)-(input.left?1:0), my=(input.down?1:0)-(input.up?1:0);
