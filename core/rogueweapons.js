@@ -2,23 +2,36 @@ import { G } from './state.js';
 import { emit } from './events.js';
 import { rnd } from './rng.js';
 
-// ROGUE is a Vampire-Survivors-style loadout: your starter weapon stays, and each
-// level-up can ADD a new weapon (they all auto-fire together) or LEVEL an owned one.
-// Choices are categorized — attack (weapons), defense (shield), utility (magnet/speed) —
-// so building badly leaves you under-gunned and overwhelmed.
+// ROGUE loadout: WEAPONS (each auto-fires its own pattern, stack + level up) and PASSIVES
+// (stat multipliers via G.run / G.p that buff ALL weapons). Slot caps force trade-offs;
+// building badly = under-gunned and overwhelmed.
 
 export const ROGUE_WEAPONS = {
-  bolt:   { name:'PULSE',   max:6 },   // fast forward bolts at the nearest foe
-  spread: { name:'SCATTER', max:6 },   // wide fan — crowd control
-  seeker: { name:'SEEKER',  max:6 },   // homing missiles
-  beam:   { name:'LANCE',   max:6 },   // slow, piercing, high-damage
+  bolt:   { name:'PULSE',   desc:'fast bolts at the nearest foe', max:6 },
+  spread: { name:'SCATTER', desc:'wide fan, crowd control',       max:6 },
+  seeker: { name:'SEEKER',  desc:'homing missiles',               max:6 },
+  beam:   { name:'LANCE',   desc:'slow, piercing, heavy hits',    max:6 },
 };
 const MAX_WEAPONS = 5;
+export const STARTERS = ['bolt','spread','seeker','beam'];
+
+export const ROGUE_PASSIVES = {
+  might:   { name:'MIGHT',     desc:'+18% damage',           max:5, apply:()=>{ G.run.dmg*=1.18; } },
+  haste:   { name:'HASTE',     desc:'+12% fire rate',        max:5, apply:()=>{ G.run.fireRate*=0.88; } },
+  splinter:{ name:'SPLINTER',  desc:'+1 projectile',         max:4, apply:()=>{ G.run.multishot+=1; } },
+  velocity:{ name:'VELOCITY',  desc:'+18% projectile speed', max:4, apply:()=>{ G.run.bulletSpd*=1.18; } },
+  magnet:  { name:'MAGNET',    desc:'gems pull from farther',max:5, apply:()=>{ G.magnet+=42; } },
+  plating: { name:'PLATING',   desc:'+1 max shield (refill)',max:4, apply:()=>{ G.p.shieldMax++; G.p.shield=G.p.shieldMax; } },
+  regen:   { name:'NANO-REGEN',desc:'+40% shield regen',     max:4, apply:()=>{ G.run.regen*=1.4; } },
+  thrust:  { name:'THRUSTERS', desc:'+12% move speed',       max:4, apply:()=>{ G.p.speed*=1.12; } },
+  growth:  { name:'GROWTH',    desc:'+20% XP from gems',     max:4, apply:()=>{ G.xpGain*=1.2; } },
+};
+const MAX_PASSIVES = 6;
 
 function nearest(){ let b=null,bd=1e18; for(const e of G.enemies){const dx=e.x-G.p.x,dy=e.y-G.p.y,d=dx*dx+dy*dy; if(d<bd){bd=d;b=e;}} return b; }
 function pb(x,y,vx,vy,dmg,extra){ G.bullets.push(Object.assign({x,y,vx,vy,color:'#39ffd0',r:5,len:11,dmg,pierce:false,bomb:false,life:2.4,hits:0},extra||{})); }
 
-function weaponCd(w){
+function weaponBaseCd(w){
   if(w.id==='bolt')   return Math.max(0.11, 0.42 - w.lvl*0.04);
   if(w.id==='spread') return Math.max(0.34, 0.80 - w.lvl*0.05);
   if(w.id==='seeker') return Math.max(0.45, 1.00 - w.lvl*0.07);
@@ -36,19 +49,32 @@ function fireWeapon(w){
     pb(G.p.x,G.p.y,Math.cos(ang)*spd,Math.sin(ang)*spd,dmg,{pierce:true,color:'#22e1ff',r:6,len:26}); emit('sfx','laser'); }
 }
 export function tickRogueWeapons(dt){
-  for(const w of G.weapons){ w.fireT-=dt; if(w.fireT<=0){ w.fireT=weaponCd(w); fireWeapon(w); } }
+  const r=G.run;
+  for(const w of G.weapons){
+    w.fireT-=dt;
+    if(w.fireT<=0){
+      w.fireT=weaponBaseCd(w)*r.fireRate;        // HASTE passive
+      const st=G.bullets.length; fireWeapon(w);
+      for(let i=st;i<G.bullets.length;i++){ const b=G.bullets[i]; // MIGHT / VELOCITY / PIERCE passives
+        b.dmg*=r.dmg; if(r.pierce)b.pierce=true; if(r.bulletSpd!==1){ b.vx*=r.bulletSpd; b.vy*=r.bulletSpd; } }
+      if(r.multishot>0 && G.bullets.length>st){ const base=G.bullets[st]; // SPLINTER passive
+        for(let m=1;m<=r.multishot;m++){ const s=(m%2)?1:-1, a=0.14*Math.ceil(m/2)*s;
+          G.bullets.push({...base, vx:base.vx*Math.cos(a)-base.vy*Math.sin(a), vy:base.vx*Math.sin(a)+base.vy*Math.cos(a)}); } }
+    }
+  }
 }
 
-// Build a 1-of-3 draft from attack / defense / utility categories, based on the loadout.
+// 1-of-3 draft mixing weapons (attack) and passives (defense/utility), honoring slot caps.
 export function rollRogueDraft(){
   const opts=[];
   for(const w of G.weapons){ const def=ROGUE_WEAPONS[w.id];
     if(w.lvl<def.max) opts.push({kind:'wup',id:w.id,name:def.name+' Lv'+(w.lvl+1),desc:'level up your '+def.name.toLowerCase()}); }
-  if(G.weapons.length<MAX_WEAPONS){ for(const id in ROGUE_WEAPONS){ if(!G.weapons.some(w=>w.id===id))
-    opts.push({kind:'wnew',id,name:'+ '+ROGUE_WEAPONS[id].name,desc:'add a new weapon'}); } }
-  opts.push({kind:'magnet',name:'MAGNET',desc:'gems pull in from farther'});
-  opts.push({kind:'shield',name:'PLATING',desc:'+1 max shield, refilled'});
-  opts.push({kind:'speed', name:'THRUSTERS',desc:'+12% move speed'});
+  if(G.weapons.length<MAX_WEAPONS) for(const id in ROGUE_WEAPONS){ if(!G.weapons.some(w=>w.id===id))
+    opts.push({kind:'wnew',id,name:'+ '+ROGUE_WEAPONS[id].name,desc:ROGUE_WEAPONS[id].desc}); }
+  for(const p of G.passives){ const def=ROGUE_PASSIVES[p.id];
+    if(p.lvl<def.max) opts.push({kind:'pup',id:p.id,name:def.name+' Lv'+(p.lvl+1),desc:def.desc}); }
+  if(G.passives.length<MAX_PASSIVES) for(const id in ROGUE_PASSIVES){ if(!G.passives.some(p=>p.id===id))
+    opts.push({kind:'pnew',id,name:ROGUE_PASSIVES[id].name,desc:ROGUE_PASSIVES[id].desc}); }
   const out=[], bag=opts.slice();
   for(let k=0;k<3 && bag.length;k++) out.push(bag.splice(Math.floor(rnd()*bag.length),1)[0]);
   return out;
@@ -57,7 +83,6 @@ export function applyRogueChoice(o){
   if(!o)return;
   if(o.kind==='wnew') G.weapons.push({id:o.id,lvl:1,fireT:0});
   else if(o.kind==='wup'){ const w=G.weapons.find(w=>w.id===o.id); if(w)w.lvl++; }
-  else if(o.kind==='magnet') G.magnet+=44;
-  else if(o.kind==='shield'){ G.p.shieldMax++; G.p.shield=G.p.shieldMax; }
-  else if(o.kind==='speed') G.p.speed*=1.12;
+  else if(o.kind==='pnew'){ G.passives.push({id:o.id,lvl:1}); ROGUE_PASSIVES[o.id].apply(); }
+  else if(o.kind==='pup'){ const p=G.passives.find(p=>p.id===o.id); if(p){ p.lvl++; ROGUE_PASSIVES[o.id].apply(); } }
 }

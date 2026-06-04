@@ -50,7 +50,7 @@ function updateGems(dt){ // gems drift to you within the magnet radius; collect 
   for(const g of G.gems){
     const dx=G.p.x-g.x, dy=G.p.y-g.y, d=Math.hypot(dx,dy)||1;
     if(d<G.magnet){ const pull=Math.min(1, dt*7 + (G.magnet-d)/G.magnet*dt*10); g.x+=dx*pull; g.y+=dy*pull; }
-    if(d<16){ g.dead=true; G.xp+=g.val;
+    if(d<16){ g.dead=true; G.xp+=g.val*G.xpGain;
       if(G.xp>=G.xpNext){ G.plevel++; G.xp-=G.xpNext; G.xpNext=Math.ceil(G.xpNext*1.32); offerDraft(); break; } }
   }
   G.gems=G.gems.filter(g=>!g.dead);
