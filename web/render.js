@@ -439,12 +439,24 @@ function drawPaused(){
 }
 
 // The combat scene (also drawn behind the start/over DOM overlays).
+function drawWorldGrid(){ // scrolling floor + arena border (ROGUE), in world coords
+  ctx.save();
+  ctx.strokeStyle=`rgba(${G.theme.grid},.12)`; ctx.lineWidth=1;
+  const s=80, x0=Math.floor(G.camX/s)*s, y0=Math.floor(G.camY/s)*s;
+  for(let x=x0;x<=G.camX+G.W;x+=s){ctx.beginPath();ctx.moveTo(x,G.camY);ctx.lineTo(x,G.camY+G.H);ctx.stroke();}
+  for(let y=y0;y<=G.camY+G.H;y+=s){ctx.beginPath();ctx.moveTo(G.camX,y);ctx.lineTo(G.camX+G.W,y);ctx.stroke();}
+  ctx.strokeStyle=`rgba(${G.theme.glow},.5)`; ctx.lineWidth=3; ctx.shadowBlur=10; ctx.shadowColor=`rgba(${G.theme.glow},.8)`;
+  ctx.strokeRect(0,0,G.worldW,G.worldH); // visible arena boundary
+  ctx.restore();
+}
 function drawScene(){
   ctx.save();
   if(G.shake>0)ctx.translate((Math.random()-0.5)*G.shake,(Math.random()-0.5)*G.shake);
   const k=1+(MUSIC.kickPulse||0)*0.012;            // gentle breathe on the kick
   ctx.translate(G.W/2,G.H/2); ctx.scale(k,k); ctx.translate(-G.W/2,-G.H/2);
-  drawBG();
+  drawBG();                                         // screen-space starfield (fixed window)
+  ctx.save();
+  if(G.rogue){ ctx.translate(-G.camX,-G.camY); drawWorldGrid(); } // world layer scrolls with the camera
   if(G.rogue)for(const g of G.gems){ ctx.save();ctx.shadowBlur=8;ctx.shadowColor='#39ff14';ctx.fillStyle='#9dff5a';
     ctx.beginPath();ctx.moveTo(g.x,g.y-4);ctx.lineTo(g.x+4,g.y);ctx.lineTo(g.x,g.y+4);ctx.lineTo(g.x-4,g.y);ctx.closePath();ctx.fill();ctx.restore(); }
   for(const pu of G.pups)drawPup(pu);
@@ -454,7 +466,8 @@ function drawScene(){
   for(const eb of G.ebullets)drawEB(eb);
   drawParticles();
   drawPlayer();
-  // bass-drop screen flash (synced to the music drop)
+  ctx.restore();                                    // end world layer
+  // bass-drop screen flash (screen-space)
   if(G.dropFlash>0){ctx.save();ctx.globalAlpha=G.dropFlash*0.18;ctx.fillStyle='#ff2d95';ctx.fillRect(0,0,G.W,G.H);
     ctx.globalAlpha=G.dropFlash*0.5;ctx.strokeStyle='#22e1ff';ctx.lineWidth=6;ctx.strokeRect(3,3,G.W-6,G.H-6);ctx.restore();}
   ctx.restore();

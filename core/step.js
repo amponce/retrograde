@@ -35,9 +35,12 @@ function rogueSpawn(dt){
   if(G.spawnTimer<=0){ G.spawnTimer=Math.max(0.12, 0.8 - G.runT*0.010); spawnRogueEnemy(); } // rate climbs with run time
 }
 function spawnRogueEnemy(){
-  const edge=Math.floor(rnd()*4); let x,y;
-  if(edge===0){x=rnd()*G.W;y=-24;} else if(edge===1){x=rnd()*G.W;y=G.H+24;}
-  else if(edge===2){x=-24;y=rnd()*G.H;} else {x=G.W+24;y=rnd()*G.H;}
+  const m=28, edge=Math.floor(rnd()*4); let x,y;          // spawn just outside the current view, in world coords
+  if(edge===0){x=G.camX+rnd()*G.W; y=G.camY-m;}
+  else if(edge===1){x=G.camX+rnd()*G.W; y=G.camY+G.H+m;}
+  else if(edge===2){x=G.camX-m; y=G.camY+rnd()*G.H;}
+  else {x=G.camX+G.W+m; y=G.camY+rnd()*G.H;}
+  x=Math.max(-m,Math.min(G.worldW+m,x)); y=Math.max(-m,Math.min(G.worldH+m,y));
   const tier=Math.floor(G.runT/15);                    // swarmers get stronger every ~15s
   const hp=2+tier*2;
   G.enemies.push({x,y,w:26,h:24,baseX:x,t:rnd()*6,hp,maxhp:hp,carrier:false,type:'grunt',
@@ -73,15 +76,23 @@ export function advance(input, dt){
   if(input.grab){ // touch: ease toward the relative target set by the drag delta
     G.p.x+=(input.tx-G.p.x)*Math.min(1,dt*18); G.p.y+=(input.ty-G.p.y)*Math.min(1,dt*18);
     G.p.thrust=1;
-  } else if(input.mouseActive){ // desktop mouse: ship eases toward the cursor
-    G.p.x+=(input.mx-G.p.x)*Math.min(1,dt*18); G.p.y+=(input.my-G.p.y)*Math.min(1,dt*18);
+  } else if(input.mouseActive){ // desktop mouse: ship eases toward the cursor (world coords in ROGUE)
+    const tx=G.rogue?G.camX+input.mx:input.mx, ty=G.rogue?G.camY+input.my:input.my;
+    G.p.x+=(tx-G.p.x)*Math.min(1,dt*18); G.p.y+=(ty-G.p.y)*Math.min(1,dt*18);
     G.p.thrust=1;
   } else {
     let mx=(input.right?1:0)-(input.left?1:0), my=(input.down?1:0)-(input.up?1:0);
     G.p.x+=mx*G.p.speed*dt; G.p.y+=my*G.p.speed*dt; G.p.thrust=(input.up?1:0.4);
   }
-  G.p.x=Math.max(G.p.w/2,Math.min(G.W-G.p.w/2,G.p.x));
-  G.p.y=Math.max(60,Math.min(G.H-50,G.p.y));
+  if(G.rogue){ // roam a large world; camera follows, clamped to world bounds
+    G.p.x=Math.max(G.p.w/2,Math.min(G.worldW-G.p.w/2,G.p.x));
+    G.p.y=Math.max(G.p.h/2,Math.min(G.worldH-G.p.h/2,G.p.y));
+    G.camX=Math.max(0,Math.min(G.worldW-G.W,G.p.x-G.W/2));
+    G.camY=Math.max(0,Math.min(G.worldH-G.H,G.p.y-G.H/2));
+  } else {
+    G.p.x=Math.max(G.p.w/2,Math.min(G.W-G.p.w/2,G.p.x));
+    G.p.y=Math.max(60,Math.min(G.H-50,G.p.y));
+  }
 
   // firing (auto when held)
   G.p.fireCd-=dt;
@@ -106,7 +117,7 @@ export function advance(input, dt){
       const na=cur+Math.max(-dt*6,Math.min(dt*6,dd)), sp=Math.hypot(b.vx,b.vy); b.vx=Math.cos(na)*sp; b.vy=Math.sin(na)*sp; } }
     b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;
     if(b.bomb)b.vy+=240*dt;}
-  G.bullets=G.bullets.filter(b=>b.life>0 && b.y>-40 && b.y<G.H+40 && b.x>-40 && b.x<G.W+40);
+  G.bullets=G.bullets.filter(b=>b.life>0 && (G.rogue || (b.y>-40 && b.y<G.H+40 && b.x>-40 && b.x<G.W+40))); // ROGUE bullets are world-space; expire by life
 
   // level / wave flow
   if(G.rogue){

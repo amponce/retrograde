@@ -39,6 +39,7 @@ export function resetGame(){
   G.daily=false; G.dailySeed=0; G.overdrive=false;
   G.rogue=false; G.runT=0; G.xp=0; G.plevel=1; G.xpNext=4; // ROGUE: run clock + XP/level
   G.gems=[]; G.weapons=[]; G.magnet=46;                    // ROGUE: collectible XP gems, weapon loadout, pickup radius
+  G.worldW=G.W; G.worldH=G.H; G.camX=0; G.camY=0;          // ROGUE: large arena + follow-camera (viewport-sized for other modes)
   G.run={fireRate:1, dmg:1, multishot:0, pierce:false, bulletSpd:1, regen:1, picks:[]}; G.draft=null;
   G.spawnTimer=0; G.waveActive=false; G.toSpawn=[]; G.betweenWaves=1.2;
 }
