@@ -19,7 +19,7 @@ Weak start (learn) → mid-run (build comes online = power fantasy) → late (ov
 ## 3. Weapons & the build (the heart)
 - ✅ **Pick a starting weapon** at run start (CHOOSE WEAPON screen: PULSE/SCATTER/SEEKER/LANCE).
 - ✅ Weapons **stack** (multiple fire simultaneously) and ✅ **level up**.
-- ⬜ **Evolutions/fusions** — max a weapon + own the right passive → it evolves into a super (the "combine weapons" payoff; the genre's signature dopamine).
+- ✅ **Evolutions/fusions** — max a weapon + own its paired passive → the draft offers an EVOLVE into a super (PULSE+Haste→STORM, SCATTER+Splinter→NOVA, SEEKER+Might→SWARM, LANCE+Velocity→RAILGUN).
 - ✅ **Passives** distinct from weapons — 9 of them (Might, Haste, Splinter, Velocity, Magnet, Plating, Regen, Thrusters, Growth), each levels and buffs all weapons via G.run.
 - ✅ **Slot caps** — 5 weapons + 6 passives; at cap the draft only offers leveling.
 
