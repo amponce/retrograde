@@ -7,7 +7,7 @@ import { ensureAudio, pauseMusic, resumeMusic, MUSIC, onBeatNow } from './audio.
 
 // Platform input state (held keys, pointer mode). Lives in the adapter, not the sim.
 const keys={};
-let fireHeld=false, mouseCtrl=false;
+let fireHeld=false, mouseCtrl=false, nukeWanted=false;
 let mx=0, my=0;                 // desktop cursor target
 let grab=false, tx=0, ty=0;     // touch drag target
 let dragId=null, dragAnchor=null;
@@ -39,7 +39,9 @@ function handleTap(x,y){
 
 // Build the input struct advance(input,dt) consumes, from current adapter state.
 export function buildInput(){
+  const nuke=nukeWanted; nukeWanted=false;   // edge-triggered: fires once per key press
   return {
+    nuke,
     left: keys['ArrowLeft']||keys['KeyA'],
     right: keys['ArrowRight']||keys['KeyD'],
     up: keys['ArrowUp']||keys['KeyW'],
@@ -65,6 +67,7 @@ export function attachInput(canvas, sceneGetter){
     // pressing a movement key hands control back from the mouse to the keyboard
     if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','KeyW','KeyA','KeyS','KeyD'].includes(e.code))mouseCtrl=false;
     if(!keys[e.code]){
+      if(e.code==='KeyB' || (e.code==='Space'&&G.rogue)) nukeWanted=true;   // ROGUE: launch a nuke (B, or Space since fire is auto)
       if(e.code==='Space'){fireHeld=true; if(getScene()==='play')tryFire();}
       if(e.code==='KeyP'&&getScene()==='play'){G.scene='paused'; pauseMusic();}
       else if(e.code==='KeyP'&&getScene()==='paused'){G.scene='play'; resumeMusic();}

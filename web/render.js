@@ -369,6 +369,9 @@ function drawHUD(){
     ctx.fillStyle='rgba(255,255,255,0.12)'; ctx.fillRect(bx,by,bw,bh);
     ctx.save(); ctx.shadowBlur=fl?16:7; ctx.shadowColor='#39ff14'; ctx.fillStyle=fl?'#d6ffb0':'#39ff14';
     ctx.fillRect(bx,by,bw*frac,bh); ctx.restore();
+    if((G.nukes||0)>0){ ctx.save(); ctx.textBaseline='middle'; // stockpiled nukes (B/Space to launch)
+      ctx.font="700 13px 'Audiowide', sans-serif"; ctx.shadowBlur=8; ctx.shadowColor='#ffd23a'; ctx.fillStyle='#ffd23a';
+      ctx.fillText('NUKE ×'+G.nukes, 16, 88); ctx.restore(); }
     if(G.waveBannerT>0){ ctx.save(); ctx.globalAlpha=Math.min(1,G.waveBannerT*1.4); ctx.textAlign='center';
       ctx.font="700 22px 'Audiowide', sans-serif"; ctx.shadowBlur=14; ctx.shadowColor='#ff2d95'; ctx.fillStyle='#ffd23a';
       ctx.fillText('⚠ '+G.waveBanner, G.W/2, 112); ctx.restore(); ctx.textAlign='left'; }

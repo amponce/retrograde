@@ -98,6 +98,14 @@ function updateGems(dt){ // gems drift to you within the magnet radius; collect 
   }
   G.gems=G.gems.filter(g=>!g.dead);
 }
+function rogueNuke(){ // panic button: spend a stockpiled nuke to blast the screen clear
+  if(!G.rogue || (G.nukes||0)<=0) return;
+  G.nukes--;
+  emit('sfx','bomb'); addShake(13); G.dropFlash=1; G.freeze=Math.max(G.freeze,0.08); // big flash + hitstop
+  G.ebullets.length=0;                                       // wipe incoming fire
+  boom(G.p.x,G.p.y,'#ffffff',46,460);                        // shockwave
+  for(const e of [...G.enemies]){ e.hp-=42; e.flash=0.2; if(e.hp<=0)killEnemy(e); } // clears the swarm, dents elites
+}
 export function advance(input, dt){
   G.onBeat = !!input.onBeat;
   if(G.rogue){ G.runT+=dt; G.musicIntensity=1+Math.floor(G.runT/12); } // ROGUE clock drives horde, strength, + music crank
@@ -116,7 +124,7 @@ export function advance(input, dt){
   G.shootingStars=G.shootingStars.filter(ss=>ss.age<ss.life);
 
   // player movement
-  const ease=G.rogue?13:18;   // ROGUE follows the cursor a touch slower (calmer roam)
+  const ease=G.rogue?9:18;   // ROGUE follows the cursor gently (less twitchy on a touchpad)
   if(input.grab){ // touch: ease toward the relative target set by the drag delta
     G.p.x+=(input.tx-G.p.x)*Math.min(1,dt*ease); G.p.y+=(input.ty-G.p.y)*Math.min(1,dt*ease);
     G.p.thrust=1;
@@ -147,6 +155,7 @@ export function advance(input, dt){
   G.p.fireCd-=dt;
   if(G.rogue){ tickRogueWeapons(dt); } // ROGUE: whole weapon loadout auto-fires on its own timers
   else if((input.fire||input.mouseActive)&&G.p.fireCd<=0){ tryFire(); }
+  if(G.rogue && input.nuke) rogueNuke();   // launch a stockpiled nuke (B / Space)
   if(G.p.rapid>0)G.p.rapid-=dt;
   if(G.p.invuln>0)G.p.invuln-=dt;
   if(G.rogue && (G.p.phase||0)>0){ G.p.phaseT=(G.p.phaseT||0)-dt;   // PHASE: periodic brief invulnerability (more frequent per level)
@@ -308,8 +317,9 @@ function killEnemy(e,silent){
     for(let k=-1;k<=1;k+=2)
       G.enemies.push({x:e.x+k*14,y:e.y,w:20,h:18,pat:'dive',t:rnd()*6,baseX:e.x+k*14,hp:1,maxhp:1,carrier:false,type:'grunt',fireT:2.5,vy:160,amp:30,sp:2.2,flash:0});
   }
-  if(G.rogue){ const ng=e.type==='elite'?9:1;   // ROGUE: kills drop gems; an elite bursts a reward pile
-    for(let i=0;i<ng;i++)G.gems.push({x:e.x+(rnd()-0.5)*34,y:e.y+(rnd()-0.5)*34,val:1,dead:false}); }
+  if(G.rogue){ const ng=e.type==='elite'?9:1;   // ROGUE: kills drop gems; an elite bursts a reward pile + a nuke
+    for(let i=0;i<ng;i++)G.gems.push({x:e.x+(rnd()-0.5)*34,y:e.y+(rnd()-0.5)*34,val:1,dead:false});
+    if(e.type==='elite'){ G.nukes=(G.nukes||0)+1; emit('sfx','life'); } }
 }
 function bombSplash(x,y){boom(x,y,'#39ff14',16,300);addShake(5);emit('sfx','boom');
   for(const e of G.enemies){if(Math.abs(e.x-x)<70&&Math.abs(e.y-y)<70){e.hp-=3;e.flash=0.1;if(e.hp<=0)killEnemy(e);}}

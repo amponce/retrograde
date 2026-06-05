@@ -42,6 +42,7 @@ export function resetGame(){
   G.worldW=G.W; G.worldH=G.H; G.camX=0; G.camY=0;          // ROGUE: large arena + follow-camera (viewport-sized for other modes)
   G.waveNum=0; G.waveT=2.2; G.rogueQueue=[]; G.waveBanner=''; G.waveBannerT=0;  // ROGUE: telegraphed wave director
   G.xpFlash=0; G.levelFlash=0;                              // ROGUE: gem-collect + level-up flashes
+  G.nukes=0;                                                // ROGUE: stockpiled screen-clear nukes (panic button)
   G.p.phase=0; G.p.phaseT=0;                               // ROGUE: PHASE passive (periodic invuln)
   G.run={fireRate:1, dmg:1, multishot:0, pierce:false, bulletSpd:1, regen:1, picks:[]}; G.draft=null;
   G.spawnTimer=0; G.waveActive=false; G.toSpawn=[]; G.betweenWaves=1.2;
